@@ -15,16 +15,21 @@ namespace MGAutoSell
         private TradeRulesListDrawer drawer;
         private Vector2 _scroll = Vector2.zero;
 
-        private TradeRulesGameComp comp;
+        private TradeRulesMapComp comp;
 
         public MainTabWindow_FindAndAutoSell()
         {
+            preventCameraMotion = false;
+            draggable = true;
+            resizeable = true;
+            closeOnAccept = false;
+            doCloseX = true;
         }
 
         public override void PreOpen()
         {
             base.PreOpen();
-            comp = Current.Game.GetComponent<TradeRulesGameComp>();
+            comp = Find.CurrentMap.GetComponent<TradeRulesMapComp>();
             drawer = new TradeRulesListDrawer(comp.tradeRules);
 
         }

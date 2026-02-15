@@ -10,23 +10,25 @@ namespace MGAutoSell
 {
     public class TradeRule : IExposable, IQuerySearch
     {
-        public QuerySearch Search { get; private set; }
-        public IntRangeUB StockRange;
-
+        public int BuyWhenBelow;
+        public int BuyUpTo;
+        public int SellDownTo;
+        public bool Enabled;
+        public QuerySearch search;
+        public QuerySearch Search => search;
 
         public void ExposeData()
         {
-            var querySearch = Search;
-            Scribe_Deep.Look(ref querySearch, "search");
-            Scribe_Values.Look(ref StockRange.range, "sel");
-
-            Search = querySearch;
+            Scribe_Deep.Look(ref search, "search");
+            Scribe_Values.Look(ref BuyWhenBelow, "BuyWhenBelow");
+            Scribe_Values.Look(ref BuyUpTo, "BuyUpTo");
+            Scribe_Values.Look(ref SellDownTo, "SellDownTo");
+            Scribe_Values.Look(ref Enabled, "Enabled");
         }
 
         public TradeRule(string name)
         {
-            StockRange = new IntRangeUB(0, 100);
-            Search = new QuerySearch()
+            search = new QuerySearch()
             {
                 name = name,
             };

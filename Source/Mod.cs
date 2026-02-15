@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using HarmonyLib;
 using UnityEngine;
 using Verse;
 
@@ -18,7 +19,8 @@ namespace RimMod
     {
         public Mod(ModContentPack content) : base(content)
         {
-
+            var harmony = new Harmony(content.PackageId);
+            harmony.PatchAll();
         }
 
         public override void DoSettingsWindowContents(Rect inRect)

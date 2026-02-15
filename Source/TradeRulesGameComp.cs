@@ -7,19 +7,9 @@ using Verse;
 
 namespace MGAutoSell
 {
-    public class TradeRulesGameComp : GameComponent
+    public class TradeRulesMapComp(Map m) : MapComponent(m)
     {
         public TradeRulesGroup tradeRules = new TradeRulesGroup();
-
-        public TradeRulesGameComp()
-        {
-            
-        }
-
-        public TradeRulesGameComp(Game g) : base()
-        {
-            
-        }
 
         public override void ExposeData()
         {

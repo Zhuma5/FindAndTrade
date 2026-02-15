@@ -74,8 +74,6 @@ namespace MGAutoSell
                 return;
 
             var rect3 = headerRect.RightPart(0.3f);
-
-            TDWidgets.IntRangeUB(rect3, 1, ref _tradeRule.StockRange);
         }
     }
 }
