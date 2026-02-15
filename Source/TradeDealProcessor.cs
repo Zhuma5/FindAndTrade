@@ -69,11 +69,11 @@ namespace MGAutoSell
                 var silver = deal.CurrencyTradeable.CountToTransfer;
 
                 var buy = deal.AllTradeables
-                    .Where(x => x.CountToTransfer > 0)
+                    .Where(x => x.CountToTransfer > 0 && !x.IsCurrency)
                     .Select(x => (x.ThingDef.label, x.CountToTransfer))
                     .ToList();
                 var sell = deal.AllTradeables
-                    .Where(x => x.CountToTransfer < 0)
+                    .Where(x => x.CountToTransfer < 0 && !x.IsCurrency)
                     .Select(x => (x.ThingDef.label, x.CountToTransfer))
                     .ToList();
 
@@ -94,6 +94,9 @@ namespace MGAutoSell
 
         public static void DoTradeDeal(TradeDeal deal)
         {
+#if DEBUG
+            var performanceTracker = PerformanceTracker.StartNew();
+#endif
             var map = TradeSession.playerNegotiator?.Map;
             if (map == null) return;
 
@@ -108,9 +111,9 @@ namespace MGAutoSell
 
             bool changedAnything = false;
 
-            var sellDictionary = new List<(Tradeable Tradeable, int Count)>();
-            var buyDictionary = new List<(Tradeable Tradeable, int Count)>();
-            var itemCache = tradeables.ToList();
+            var sellDictionary = new Dictionary<Tradeable, int>();
+            var buyDictionary = new Dictionary<Tradeable, int>();
+            var itemCache = tradeables.Where(x => x.TraderWillTrade).ToList();
 
             if (!GroupedTrading)
             {
@@ -119,6 +122,9 @@ namespace MGAutoSell
                 ExtrasOnMap.Clear();
             }
 
+#if DEBUG
+            performanceTracker.Checkpoint("Setup");
+#endif
             var itemsToAdd = itemCache.GroupBy(x => x.ThingDef).ToDictionary(x => x.Key,
                 x => x.ToList().Sum(x => x.CountHeldBy(Transactor.Colony)));
 
@@ -126,16 +132,37 @@ namespace MGAutoSell
             {
                 ThingDefAggregations.TryAdd(item.Key, item.Value);
             }
-
+#if DEBUG
+            performanceTracker.Checkpoint("Population");
+#endif
             var itemsOnMap = map.listerThings.AllThings.Where(x => !x.IsForbidden(Faction.OfPlayer)).ToList();
             tradeables.ForEach(x => x.thingsColony.ForEach(y => itemsOnMap.Remove(y)));
 
+#if DEBUG
+            performanceTracker.Checkpoint("Extra items");
+#endif
+
             var pairings = new Dictionary<ThingDef, TradeRule>();
+            foreach (var tradeable in tradeables)
+            {
+                var junk = tradeable.thingsColony.Where(x =>
+                    x.Map.designationManager.DesignationOn(x, MGDesignatorDefOf.MGAutoSell) != null).ToList();
+
+                if(!junk.Any())
+                    continue;
+
+                var total = junk.Sum(x => x.stackCount);
+                AddCount(null, tradeable.ThingDef, total);
+                sellDictionary[tradeable] = total;
+            }
+
+#if DEBUG
+            performanceTracker.Checkpoint("Junk");
+#endif
             foreach (var rule in autoTrade.tradeRules)
             {
-
                 var items = itemCache
-                    .Where(x => rule.search.AppliesTo(x.AnyThing))
+                    .Where(x => !x.IsCurrency && rule.search.AppliesTo(x.AnyThing))
                     .Select(x => new TradeEntry(x, x.ThingDef, x.CountHeldBy(Transactor.Colony), x.CountHeldBy(Transactor.Trader)))
                     .ToList();
 
@@ -149,12 +176,21 @@ namespace MGAutoSell
                     pairings.Add(x.ThingDef, rule);
                 });
 
-                sellDictionary.AddRange(toSell.Select(x =>
+                var sellOrders = toSell.Select(x =>
                 {
-                    var sellOrder = (x.Tradeable, Math.Max(GetCount(rule, x.ThingDef) - rule.SellDownTo, x.ColonyCount));
+                    var sellOrder = (x.Tradeable,
+                        Math.Max(GetCount(rule, x.ThingDef) - rule.SellDownTo, x.ColonyCount));
                     AddCount(rule, x.ThingDef, -sellOrder.Item2);
                     return sellOrder;
-                }));
+                });
+
+                foreach ((var tradeable, var count) in sellOrders)
+                {
+                    if(sellDictionary.TryAdd(tradeable, count))
+                        continue;
+
+                    sellDictionary[tradeable] += count;
+                }
 
                 var toBuy =
                     rule.AllowBuy
@@ -167,12 +203,23 @@ namespace MGAutoSell
                         : [];
                 toBuy.ForEach(x => itemCache.Remove(x.Tradeable));
 
-                buyDictionary.AddRange(toBuy.Select(x =>
+                var buyOrders = toBuy.Select(x =>
                 {
                     var buyOrder = (x.Tradeable, Math.Min(rule.BuyUpTo - GetCount(rule, x.ThingDef), x.TraderCount));
                     AddCount(rule, x.ThingDef, buyOrder.Item2);
                     return buyOrder;
-                }));
+                });
+
+                foreach ((var tradeable, var count) in buyOrders)
+                {
+                    if (buyDictionary.TryAdd(tradeable, count))
+                        continue;
+
+                    buyDictionary[tradeable] += count;
+                }
+#if DEBUG
+                performanceTracker.Checkpoint($"Trade Rule - {rule.search.Name}");
+#endif
             }
 
             foreach (var (tradeable, toSell) in sellDictionary)
@@ -182,9 +229,11 @@ namespace MGAutoSell
                 SetTradeCount(tradeable, toBuy);
 
             deal.UpdateCurrencyCount();
-
+#if DEBUG
+            performanceTracker.Checkpoint("Set trade");
+#endif
             // Buying too much
-            var buyReversed = buyDictionary.ToList();
+            var buyReversed = buyDictionary.Select(x => (x.Key, x.Value)).ToList();
             buyReversed.Reverse();
             while (deal.CurrencyTradeable.CountToTransfer < 0 && deal.CurrencyTradeable.CountToTransfer * -1 > deal.CurrencyTradeable.CountHeldBy(Transactor.Colony))
             {
@@ -193,8 +242,12 @@ namespace MGAutoSell
                 deal.NormalizeWith(buyReversed, pairings, gap);
             }
 
+#if DEBUG
+            performanceTracker.Checkpoint("Too many buy");
+#endif
+
             // Selling too much
-            var sellReversed = sellDictionary.ToList();
+            var sellReversed = sellDictionary.Select(x => (x.Key, x.Value)).ToList();
             sellReversed.Reverse();
             while (deal.CurrencyTradeable.CountToTransfer > deal.CurrencyTradeable.CountHeldBy(Transactor.Trader))
             {
@@ -202,6 +255,18 @@ namespace MGAutoSell
                           deal.CurrencyTradeable.CountHeldBy(Transactor.Trader);
                 deal.NormalizeWith(sellReversed, pairings, gap);
             }
+
+#if DEBUG
+            performanceTracker.Checkpoint("Too many sell");
+#endif
+
+            // Sell marked items first
+            deal.AllTradeables.ForEach(x => x.thingsColony = x.thingsColony.OrderBy(x => x.Map.designationManager.DesignationOn(x, MGDesignatorDefOf.MGAutoSell) == null).ToList());
+
+#if DEBUG
+            performanceTracker.Checkpoint("Sort");
+            Log.Message(performanceTracker.Flush());
+#endif
         }
 
         private static void NormalizeWith(this TradeDeal deal, List<(Tradeable Tradeable, int Count)> list, Dictionary<ThingDef, TradeRule> pairings, int gap)
@@ -245,7 +310,7 @@ namespace MGAutoSell
         private static void AddCount(TradeRule rule, ThingDef def, int amount)
         {
             int before = 0;
-            switch (rule.Aggregation)
+            switch (rule?.Aggregation ?? TradeRuleAggregation.ThingDef)
             {
                 case TradeRuleAggregation.ThingDef:
                     ThingDefAggregations.TryGetValue(def, out before);
@@ -294,7 +359,7 @@ namespace MGAutoSell
             var traderName = trader?.TraderName ?? "someone";
 
             var body = "MGAutoSell.Letter".Translate(pawn.Name.ToStringShort, traderName, silver,
-                word, buyStringBuilder.ToString(), sellStringBuilder.ToString());
+                word, buy.Any() ? buyStringBuilder.ToString() : string.Empty, sell.Any() ? sellStringBuilder.ToString() : string.Empty);
 
             var globalTargetInfo = new GlobalTargetInfo(location, pawn.Map);
             
