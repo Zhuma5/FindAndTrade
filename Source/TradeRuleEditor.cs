@@ -12,7 +12,7 @@ namespace MGAutoSell
     internal class TradeRuleEditor : SearchEditorRevertableWindow
     {
         private readonly TradeRule _tradeRule;
-        private static string AggByDef = "MGAutoSell.AggByDef".Translate(), AggByRule = "MGAutoSell.AggByRule".Translate();
+        private static string _aggByDef = "MGAutoSell.AggByDef".Translate(), _aggByRule = "MGAutoSell.AggByRule".Translate();
 
         public TradeRuleEditor(TradeRule tradeRule) : base(tradeRule.Search, "Trade Rule")
         {
@@ -77,8 +77,8 @@ namespace MGAutoSell
             var rect3 = headerRect.RightPart(0.3f);
             var label =  _tradeRule.Aggregation switch
             {
-                TradeRuleAggregation.ThingDef => AggByDef,
-                TradeRuleAggregation.Rule => AggByRule,
+                TradeRuleAggregation.ThingDef => _aggByDef,
+                TradeRuleAggregation.Rule => _aggByRule,
                 _ => throw new ArgumentOutOfRangeException()
             };
 

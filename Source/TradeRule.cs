@@ -13,6 +13,7 @@ namespace MGAutoSell
         public int BuyWhenBelow;
         public int BuyUpTo;
         public int SellDownTo;
+        public int SellWhenOver;
         public bool Enabled = true;
         public TradeRuleAggregation Aggregation = TradeRuleAggregation.ThingDef;
         public QuerySearch search;
