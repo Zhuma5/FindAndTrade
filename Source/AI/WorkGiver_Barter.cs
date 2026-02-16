@@ -15,7 +15,7 @@ namespace MGAutoSell.AI
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn) => 
             pawn.Map.listerBuildings.AllBuildingsColonistOfClass<Building_CommsConsole>();
         public override bool ShouldSkip(Pawn pawn, bool forced = false) => 
-            !pawn.Map.GetComponent<TradeRulesMapComp>().tradeRules.Any();
+            !Current.Game.GetComponent<TradeRulesGameComp>().tradeRules.Any();
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false) => 
             new(AIDefOf.MGJobDriver_Barter, t);
 
@@ -28,13 +28,14 @@ namespace MGAutoSell.AI
                 !t.Map.passingShipManager.passingShips.Any())
                 return false;
 
+            var comp = Current.Game.GetComponent<TradeRulesGameComp>();
             var map = t.Map;
-            var hasShip = map.passingShipManager.passingShips.Any(x => x is TradeShip tradeShip && pawn.CanTradeWith(x.Faction, ((ITrader)x).TraderKind));
+            var hasShip = map.passingShipManager.passingShips.Any(x => x is TradeShip tradeShip && pawn.CanTradeWith(x.Faction, ((ITrader)x).TraderKind) && !comp.traders.Contains((ITrader)x));
 
             if(!hasShip) 
                 return false;
 
-            if (!map.GetComponent<TradeRulesMapComp>().tradeRules.Any())
+            if (!Current.Game.GetComponent<TradeRulesGameComp>().tradeRules.Any())
                 return false;
 
             return true;

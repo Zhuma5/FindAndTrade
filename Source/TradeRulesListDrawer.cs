@@ -11,10 +11,10 @@ namespace MGAutoSell
 {
     public class TradeRulesListDrawer : SearchGroupDrawerBase<TradeRulesGroup,TradeRule>
     {
-        private TradeRulesMapComp comp;
+        private TradeRulesGameComp comp;
         public TradeRulesListDrawer(TradeRulesGroup list) : base(list)
         {
-            comp = Find.CurrentMap.GetComponent<TradeRulesMapComp>();
+            comp = Current.Game.GetComponent<TradeRulesGameComp>();
         }
 
         public override void DrawRowButtons(WidgetRow row, TradeRule item, int i)

@@ -6,9 +6,9 @@
     <reportString>Bartering at TargetA.</reportString>
   </JobDef>  
   
-  <JobDef>
+  <!-- <JobDef>
     <defName>MGJobDriver_PawnBarter</defName>
     <driverClass>MGAutoSell.AI.JobDriver_PawnBarter</driverClass>
     <reportString>Bartering with TargetA.</reportString>
-  </JobDef>
+  </JobDef> -->
 </Defs>

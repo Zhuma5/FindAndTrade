@@ -3,10 +3,10 @@
     <WorkGiverDef>
         <defName>MGAutoSell</defName>
         <workType>Warden</workType>
+        <giverClass>MGAutoSell.AI.WorkGiver_Barter</giverClass>
         <priorityInType>90</priorityInType>
         <verb>barter</verb>
         <gerund>bartering</gerund>
-        <givesSatisfaction>true</givesSatisfaction>
         <requiredCapacities>
             <li>Talking</li>
             <li>Manipulation</li>

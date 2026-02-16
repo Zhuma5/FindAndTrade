@@ -96,7 +96,10 @@ namespace MGAutoSell
 
         public static void DoTradeShips(Pawn socialPawn)
         {
+            var comp = Current.Game.GetComponent<TradeRulesGameComp>();
             var ships = socialPawn.Map.passingShipManager.passingShips;
+
+            ships.RemoveAll(x => comp.traders.Contains(x as ITrader));
 
             if(!ships.Any()) 
                 return;
@@ -115,6 +118,8 @@ namespace MGAutoSell
                     TradeSession.SetupWith(ship, socialPawn, false);
                     var deal = TradeSession.deal;
                     DoTradeDeal(deal);
+
+                    comp.traders.Add(passingShip as ITrader);
 
                     var silver = deal.CurrencyTradeable.CountToTransfer;
 
@@ -150,7 +155,7 @@ namespace MGAutoSell
             var map = TradeSession.playerNegotiator?.Map;
             if (map == null) return;
 
-            var autoTrade = map.GetComponent<TradeRulesMapComp>();
+            var autoTrade = Current.Game.GetComponent<TradeRulesGameComp>();
 
             if (!autoTrade.tradeRules.Any())
                 return;
@@ -327,7 +332,7 @@ namespace MGAutoSell
                 item.Tradeable.CurTotalCurrencyCostForDestination);
             if (item.Count == 1 || cost < gap)
             {
-                AddCount(pairings[item.Tradeable.ThingDef], item.Tradeable.ThingDef, -1);
+                AddCount(pairings.TryGetValue(item.Tradeable.ThingDef), item.Tradeable.ThingDef, -1);
                 SetTradeCount(item.Tradeable, 0);
                 list.Remove(item);
             }
@@ -336,7 +341,7 @@ namespace MGAutoSell
                 var costPer = cost / item.Tradeable.CountToTransfer;
                 var count = item.Count;
                 item.Count = item.Tradeable.CountToTransfer - (int)Math.Round(gap / costPer, 0);
-                AddCount(pairings[item.Tradeable.ThingDef], item.Tradeable.ThingDef, count - Math.Abs(item.Count));
+                AddCount(pairings.TryGetValue(item.Tradeable.ThingDef), item.Tradeable.ThingDef, count - Math.Abs(item.Count));
                 SetTradeCount(item.Tradeable, item.Count);
             }
             deal.UpdateCurrencyCount();

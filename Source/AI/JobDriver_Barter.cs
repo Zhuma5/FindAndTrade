@@ -20,7 +20,7 @@ namespace MGAutoSell.AI
             autoSell.FailOnDespawnedNullOrForbidden(TargetIndex.A);
             var failOn = () => pawn.IsPrisoner || pawn.Dead || pawn.IsBrokenDown() ||
                                TargetThingA is not Building_CommsConsole { CanUseCommsNow: true } ||
-                               !Enumerable.Any(Map.GetComponent<TradeRulesMapComp>().tradeRules);
+                               !Enumerable.Any(Current.Game.GetComponent<TradeRulesGameComp>().tradeRules);
             autoSell.FailOn(failOn);
 
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.InteractionCell)
@@ -28,13 +28,13 @@ namespace MGAutoSell.AI
 
             var trade = ToilMaker.MakeToil();
             trade.FailOn(failOn);
-            trade.initAction = () =>
+            trade.WithProgressBarToilDelay(TargetIndex.A, 600);
+            trade.activeSkill = () => SkillDefOf.Social;
+            trade.finishActions.Add(() =>
             {
                 var actor = trade.actor;
                 TradeDealProcessor.DoTradeShips(actor);
-            };
-            trade.WithProgressBarToilDelay(TargetIndex.A, 600);
-            trade.activeSkill = () => SkillDefOf.Social;
+            });
             yield return trade;
 
         }
