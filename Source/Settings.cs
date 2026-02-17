@@ -6,6 +6,7 @@ namespace MGAutoSell
     {
         // TODO Icons in Menu (true)
         // TODO Scan every stack (false)
+        public bool scanEveryStack = true;
         public override void ExposeData()
         {
             

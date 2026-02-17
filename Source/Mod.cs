@@ -12,8 +12,10 @@ namespace MGAutoSell
      */
     public class Mod : Verse.Mod
     {
+        public static Settings Settings;
         public Mod(ModContentPack content) : base(content)
         {
+            Settings = GetSettings<Settings>();
             var harmony = new Harmony(content.PackageId);
             harmony.PatchAll();
         }
@@ -23,6 +25,6 @@ namespace MGAutoSell
             base.DoSettingsWindowContents(inRect);
         }
 
-        public override string SettingsCategory() => "RimMod.Settings".Translate();
+        public override string SettingsCategory() => "MGAutoSell.Title".Translate();
     }
 }

@@ -10,6 +10,7 @@ using HarmonyLib;
 using LudeonTK;
 using RimWorld;
 using RimWorld.Planet;
+using UnityEngine;
 using Verse;
 
 namespace MGAutoSell
@@ -31,6 +32,7 @@ namespace MGAutoSell
         private static Dictionary<TradeRule, int> TradeRuleAggregations = new();
 
         private static bool GroupedTrading = false;
+        private static string Gray = ColorUtility.ToHtmlStringRGB(TradeUI.NoTradeColor);
 
         public static void StartGroupedTrading()
         {
@@ -220,11 +222,74 @@ namespace MGAutoSell
 #if DEBUG
             performanceTracker.Checkpoint("Junk");
 #endif
-            var pairings = new Dictionary<ThingDef, TradeRule>();
+            var pairings = new Dictionary<Tradeable, TradeRule>();
             foreach (var rule in autoTrade.tradeRules.Where(x => x.Enabled && x.search.Children.queries.Any()))
             {
                 Log.Message($"Processing rule {rule.search.name}");
-                var items = itemCache
+                var items = new List<TradeEntry>();
+                if (Mod.Settings.scanEveryStack)
+                {
+                    items = new List<TradeEntry>();
+                    foreach (var tradeable in itemCache.Where(x => !x.IsCurrency))
+                    {
+                        if(AddRuleLabelsToTradeUI.ExtraLabels.ContainsKey(tradeable))
+                            continue;
+
+                        var stacksColony = tradeable.thingsColony
+                            .GroupBy(x => rule.search.AppliesTo(x, x.Map))
+                            .ToDictionary(x => x.Key, x => x.ToList());
+
+                        var stacksTrader = tradeable.thingsTrader
+                            .GroupBy(x => rule.search.AppliesTo(x, x.Map))
+                            .ToDictionary(x => x.Key, x => x.ToList());
+
+                        var matchedColony = stacksColony.TryGetValue(true, out var matchedColonyStacks);
+                        var unmatchedColony = stacksColony.TryGetValue(false, out var unmatchedColonyStacks);
+
+                        var matchedTrader = stacksTrader.TryGetValue(true,out var matchedTraderStacks);
+                        var unmatchedTrader = stacksTrader.TryGetValue(false,out var unmatchedTraderStacks);
+
+                        // No Op
+                        if (!matchedColony && unmatchedColony && !matchedTrader && unmatchedTrader)
+                            continue;
+
+                        // Claim full
+                        if ((matchedColony || matchedTrader) && (!unmatchedColony && !unmatchedTrader))
+                        {
+                            AddRuleLabelsToTradeUI.ExtraLabels[tradeable] =
+                                $"<i><color=#{Gray}> - ({rule.search.name})</color></i>";
+                            items.Add(new TradeEntry(tradeable, tradeable.ThingDef,
+                                tradeable.CountHeldBy(Transactor.Colony),
+                                tradeable.CountHeldBy(Transactor.Trader)));
+                        }
+                        // Split
+                        else if (matchedColony is var v &&
+                                 ((v || matchedTrader) && (unmatchedColony || unmatchedTrader)))
+                        {
+                            var claimedTradeable = new Tradeable
+                            {
+                                thingsColony = matchedColonyStacks ?? new(),
+                                thingsTrader = matchedTraderStacks ?? new()
+                            };
+
+                            tradeable.thingsColony = unmatchedColonyStacks ?? new();
+                            tradeable.thingsTrader = unmatchedTraderStacks ?? new();
+
+                            if (!claimedTradeable.HasAnyThing || !tradeable.HasAnyThing)
+                                throw new Exception("Empty tradeable");
+
+                            AddRuleLabelsToTradeUI.ExtraLabels[claimedTradeable] =
+                                $"<i><color=#{Gray}> - ({rule.search.name})</color></i>";
+
+                            deal.AllTradeables.Add(claimedTradeable);
+                            items.Add(new TradeEntry(claimedTradeable, claimedTradeable.ThingDef,
+                                claimedTradeable.CountHeldBy(Transactor.Colony),
+                                claimedTradeable.CountHeldBy(Transactor.Trader)));
+                        }
+                    }
+                }
+                else
+                    items = itemCache
                     .Where(x => !x.IsCurrency && x.AnyThingNotJunk(out var thing) && rule.search.AppliesTo(thing))
                     .Select(x => new TradeEntry(x, x.ThingDef, x.CountHeldBy(Transactor.Colony), x.CountHeldBy(Transactor.Trader)))
                     .ToList();
@@ -236,7 +301,7 @@ namespace MGAutoSell
                 {
                     items.Remove(x);
                     itemCache.Remove(x.Tradeable);
-                    pairings.TryAdd(x.ThingDef, rule);
+                    pairings.TryAdd(x.Tradeable, rule);
                 });
 
                 var sellOrders = toSell.Select(x =>
@@ -291,6 +356,7 @@ namespace MGAutoSell
                 SetTradeCount(tradeable, toBuy);
 
             deal.UpdateCurrencyCount();
+            AddRuleLabelsToTradeUI.TradeWindow.Notify_CommonSearchChanged();
 #if DEBUG
             performanceTracker.Checkpoint("Set trade");
 #endif
@@ -331,14 +397,14 @@ namespace MGAutoSell
 #endif
         }
 
-        private static void NormalizeWith(this TradeDeal deal, List<SellItem> list, Dictionary<ThingDef, TradeRule> pairings, int gap)
+        private static void NormalizeWith(this TradeDeal deal, List<SellItem> list, Dictionary<Tradeable, TradeRule> pairings, int gap)
         {
             var item = list.FirstOrDefault();
             var cost = Math.Max(item.Tradeable.CurTotalCurrencyCostForSource,
                 item.Tradeable.CurTotalCurrencyCostForDestination);
             if (item.Count == 1 || cost < gap)
             {
-                AddCount(pairings.TryGetValue(item.Tradeable.ThingDef), item.Tradeable.ThingDef, -1);
+                AddCount(pairings.TryGetValue(item.Tradeable), item.Tradeable.ThingDef, -1);
                 SetTradeCount(item.Tradeable, 0);
                 list.Remove(item);
             }
@@ -347,7 +413,7 @@ namespace MGAutoSell
                 var costPer = cost / item.Tradeable.CountToTransfer;
                 var reduction = (int)(item.Tradeable.CountToTransfer < 0 ? Math.Floor(gap / costPer) : Math.Ceiling(gap / costPer));
                 item.Count = item.Tradeable.CountToTransfer - reduction;
-                AddCount(pairings.TryGetValue(item.Tradeable.ThingDef), item.Tradeable.ThingDef, -reduction);
+                AddCount(pairings.TryGetValue(item.Tradeable), item.Tradeable.ThingDef, -reduction);
                 SetTradeCount(item.Tradeable, item.Count);
             }
             deal.UpdateCurrencyCount();

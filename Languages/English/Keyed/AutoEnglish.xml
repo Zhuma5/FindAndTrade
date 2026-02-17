@@ -13,4 +13,6 @@
     <MGAutoSell.Letter>{0} traded with {1}\n{2} Silver was {3}.{4}{5}</MGAutoSell.Letter>
 
     <MGAutoSell.RuleInvalid>This rule is invalid because the minimum exceeds the maximum.</MGAutoSell.RuleInvalid>
+
+    <MGAutoSell.Title>Find / Auto Sell</MGAutoSell.Title>
 </LanguageData>
