@@ -16,9 +16,10 @@ namespace MGAutoSell
         public TradeRuleAggregation Aggregation = TradeRuleAggregation.ThingDef;
         public QuerySearch search;
         public QuerySearch Search => search;
+        public TradeMode Mode = TradeMode.Export;
 
-        public bool AllowSell => SellDownTo > 0 || NoConfig;
-        public bool AllowBuy => BuyUpTo > 0;
+        public bool AllowSell => (SellDownTo > 0 || NoConfig) && Mode is TradeMode.Export or TradeMode.Maintain;
+        public bool AllowBuy => BuyUpTo > 0 && Mode is TradeMode.Import or TradeMode.Maintain;
 
         public bool NoConfig => SellDownTo == 0 && BuyUpTo == 0;
         public bool Invalid => (SellDownTo > 0 && BuyUpTo > 0 && BuyUpTo > SellDownTo) || BuyUpTo < 0 || SellDownTo < 0;
@@ -30,6 +31,7 @@ namespace MGAutoSell
             Scribe_Values.Look(ref SellDownTo, nameof(SellDownTo));
             Scribe_Values.Look(ref Enabled, nameof(Enabled));
             Scribe_Values.Look(ref Aggregation, nameof(Aggregation));
+            Scribe_Values.Look(ref Mode, nameof(Mode));
         }
 
         public TradeRule(string name)
@@ -44,5 +46,12 @@ namespace MGAutoSell
         {
             
         }
+    }
+
+    public enum TradeMode
+    {
+        Export,
+        Import,
+        Maintain
     }
 }

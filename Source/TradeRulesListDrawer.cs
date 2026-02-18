@@ -103,13 +103,14 @@ namespace MGAutoSell
             {
                 var outer = rowBuyRect.MiddlePartPixels(rowBuyRect.width - 120, rowBuyRect.height);
                 var iconRect = outer.MiddlePartPixels(Text.LineHeight, Text.LineHeight);
-                GUI.color = fadedColor;
                 var length = entry.Count;
                 var index = (int)(second % length);
-
                 var ruleRecord = entry[index];
 
-                GUI.DrawTexture(iconRect, ruleRecord.Item.uiIcon);
+                var uiColor = ruleRecord.Item.uiIconColor;
+                var mergedColor = new Color(uiColor.r, uiColor.g, uiColor.b, fadedColor.a);
+                GUI.color = mergedColor;
+                GUI.DrawTexture(iconRect, ruleRecord.Item.uiIcon, ScaleMode.StretchToFill);
                 GUI.color = original;
 
                 var countLabel = $"x{(ruleRecord.Count >= 1000 
@@ -133,8 +134,8 @@ namespace MGAutoSell
                     };
 
                 GUI.color = spread == 0
-                    ? fadedColor
-                    : Color.Lerp(fadedColor, spread > 0 ? DeepGreen : DeepRed, 
+                    ? lightFadedColor
+                    : Color.Lerp(lightFadedColor, spread > 0 ? DeepGreen : DeepRed, 
                         math.clamp(Math.Abs(spread), 0.25f, 1f));
 
                 var labelSize = Text.CalcSize(countLabel);

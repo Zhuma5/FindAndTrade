@@ -364,7 +364,7 @@ namespace MGAutoSell
                 SetTradeCount(tradeable, toBuy);
 
             deal.UpdateCurrencyCount();
-            AddRuleLabelsToTradeUI.TradeWindow.Notify_CommonSearchChanged();
+            AddRuleLabelsToTradeUI.TradeWindow?.Notify_CommonSearchChanged();
 #if DEBUG
             performanceTracker.Checkpoint("Set trade");
 #endif
