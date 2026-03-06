@@ -26,17 +26,26 @@ namespace MGAutoSell.AI
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.InteractionCell)
                 .FailOn(failOn);
 
-            var trade = ToilMaker.MakeToil();
-            trade.FailOn(failOn);
-            trade.WithProgressBarToilDelay(TargetIndex.A, 600);
-            trade.activeSkill = () => SkillDefOf.Social;
-            trade.finishActions.Add(() =>
-            {
-                var actor = trade.actor;
-                TradeDealProcessor.DoTradeShips(actor);
-            });
-            yield return trade;
+           
+            yield return DoTrade();
+        }
 
+        private Toil DoTrade()
+        {
+            var trade = ToilMaker.MakeToil();
+            trade.defaultCompleteMode = ToilCompleteMode.Delay;
+            trade.activeSkill = () => SkillDefOf.Social;
+            trade.defaultDuration = 600;
+            trade.finishActions =
+            [
+                () =>
+                {
+                    var actor = trade.actor;
+                    TradeDealProcessor.DoTradeShips(actor);
+                }
+            ];
+
+            return trade.WithProgressBarToilDelay(TargetIndex.B, 600);
         }
     }
 }
