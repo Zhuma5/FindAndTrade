@@ -19,29 +19,40 @@ namespace MGAutoSell.AI
             var autoSell = this;
             autoSell.FailOnDespawnedNullOrForbidden(TargetIndex.A);
             var failOn = () => pawn.IsPrisoner || pawn.Dead || pawn.IsBrokenDown() ||
-                               TargetThingA is not Building_CommsConsole { CanUseCommsNow: true } ||
-                               !Enumerable.Any(Current.Game.GetComponent<TradeRulesGameComp>().tradeRules);
+                               TargetThingA is Building_CommsConsole { CanUseCommsNow: false } ||
+                               (TargetThingA is Pawn { Spawned: false }) ||
+                               !Current.Game.GetComponent<TradeRulesGameComp>().tradeRules.Any();
             autoSell.FailOn(failOn);
 
-            yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.InteractionCell)
+            yield return Toils_Goto.GotoThing(TargetIndex.A, TargetThingA is Building_CommsConsole ? PathEndMode.InteractionCell : PathEndMode.Touch)
                 .FailOn(failOn);
 
            
-            yield return DoTrade();
+            yield return DoTrade(failOn);
         }
 
-        private Toil DoTrade()
+        private Toil DoTrade(Func<bool> failOn)
         {
             var trade = ToilMaker.MakeToil();
             trade.defaultCompleteMode = ToilCompleteMode.Delay;
             trade.activeSkill = () => SkillDefOf.Social;
-            trade.defaultDuration = 600;
+            if(TargetThingA is Building_CommsConsole)
+                trade.defaultDuration = 600;
+            trade.FailOn(failOn);
             trade.finishActions =
             [
                 () =>
                 {
                     var actor = trade.actor;
-                    TradeDealProcessor.DoTradeShips(actor);
+                    switch (TargetThingA)
+                    {
+                        case Building_CommsConsole:
+                            TradeDealProcessor.DoTradeShips(actor);
+                            break;
+                        case Pawn trader:
+                            TradeDealProcessor.DoTrade(actor, trader);
+                            break;
+                    }
                 }
             ];
 

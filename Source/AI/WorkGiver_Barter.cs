@@ -13,7 +13,7 @@ namespace MGAutoSell.AI
     {
         public override PathEndMode PathEndMode => PathEndMode.InteractionCell;
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn) => 
-            pawn.Map.listerBuildings.AllBuildingsColonistOfClass<Building_CommsConsole>();
+            pawn.Map.listerBuildings.AllBuildingsColonistOfClass<Building_CommsConsole>().Concat<Thing>(pawn.Map.mapPawns.AllPawnsSpawned.Where(x => x.trader != null));
         public override bool ShouldSkip(Pawn pawn, bool forced = false) => 
             !Current.Game.GetComponent<TradeRulesGameComp>().tradeRules.Any();
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false) => 
@@ -21,24 +21,26 @@ namespace MGAutoSell.AI
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
-            if (t.Faction != pawn.Faction || t.IsBurning() || t.IsForbidden(pawn) ||
-                !pawn.CanReserveAndReach((LocalTargetInfo)t, PathEndMode.InteractionCell, Danger.Some) ||
-                t is not Building_CommsConsole { CanUseCommsNow: true } ||
-                t.Map.passingShipManager.passingShips == null ||
-                !t.Map.passingShipManager.passingShips.Any())
-                return false;
-
-            var comp = Current.Game.GetComponent<TradeRulesGameComp>();
             var map = t.Map;
-            var hasShip = map.passingShipManager.passingShips.Any(x => x is TradeShip tradeShip && pawn.CanTradeWith(x.Faction, ((ITrader)x).TraderKind) && !comp.traders.Contains((ITrader)x));
+            var comp = Current.Game.GetComponent<TradeRulesGameComp>();
+            switch (t)
+            {
+                case Building_CommsConsole commsConsole:
+                    if (commsConsole.Faction != pawn.Faction || commsConsole.IsBurning() ||
+                        commsConsole.IsForbidden(pawn) || !commsConsole.CanUseCommsNow ||
+                        !pawn.CanReserveAndReach((LocalTargetInfo)commsConsole, PathEndMode.InteractionCell,
+                            Danger.Some) || commsConsole.Map.passingShipManager.passingShips?.Any() is not true)
+                        return false;
 
-            if(!hasShip) 
-                return false;
-
-            if (!Current.Game.GetComponent<TradeRulesGameComp>().tradeRules.Any())
-                return false;
-
-            return true;
+                    return map.passingShipManager.passingShips.Any(x =>
+                        x is TradeShip tradeShip &&
+                        pawn.CanTradeWith(tradeShip.Faction, ((ITrader)tradeShip).TraderKind) &&
+                        !comp.traders.Contains(tradeShip));
+                case Pawn trader:
+                    return pawn.CanTradeWith(trader.Faction, trader.TraderKind) && !comp.traders.Contains(trader);
+                default:
+                    return false;
+            }
         }
     }
 }

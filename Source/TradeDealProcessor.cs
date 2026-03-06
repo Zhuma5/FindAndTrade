@@ -102,6 +102,41 @@ namespace MGAutoSell
             EndGroupedTrading();
         }
 
+        public static void DoTrade(Pawn socialPawn, ITrader trader)
+        {
+            if (!trader.CanTradeNow)
+                return;
+
+            var comp = Current.Game.GetComponent<TradeRulesGameComp>();
+
+            if (comp.traders.Contains(trader))
+                return;
+
+            TradeSession.SetupWith(trader, socialPawn, false);
+            var deal = TradeSession.deal;
+            DoTradeDeal(deal);
+            comp.traders.Add(trader);
+            var silver = deal.CurrencyTradeable.CountToTransfer;
+
+            var buy = deal.AllTradeables
+                .Where(x => x.CountToTransfer > 0 && !x.IsCurrency)
+                .Select(x => (x.ThingDef.label, x.CountToTransfer))
+                .ToList();
+            var sell = deal.AllTradeables
+                .Where(x => x.CountToTransfer < 0 && !x.IsCurrency)
+                .Select(x => (x.ThingDef.label, x.CountToTransfer))
+                .ToList();
+
+            if (!buy.Any() && !sell.Any())
+                return;
+
+            if (!deal.TryExecute(out var actuallyTraded))
+                return;
+
+            DoLetter(trader, socialPawn, deal, socialPawn.Position, buy, sell, silver);
+
+        }
+
         public static void DoTradeShips(Pawn socialPawn)
         {
             var comp = Current.Game.GetComponent<TradeRulesGameComp>();
