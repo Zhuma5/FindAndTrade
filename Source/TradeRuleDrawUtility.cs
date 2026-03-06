@@ -40,6 +40,9 @@ namespace MGAutoSell
 
         public static TradeRuleAction DrawRow(Rect rowRect, TradeRule item, int i, ItemsToSell sellCache, int reorderId)
         {
+            suspendTex ??= BakeGrayscale(TexButton.Suspend, Color.white);
+
+
             var response = TradeRuleAction.None;
             var ruleDisabled = !item.Enabled;
             var OGColor = GUI.color;
@@ -68,9 +71,8 @@ namespace MGAutoSell
                 response = TradeRuleAction.Edit;
 
 
-            if (DrawGreyscaleIconButton(right.GetRect(24)))
+            if (right.ButtonIcon(suspendTex))
                 response = TradeRuleAction.Suspend;
-
 
             if (item.Mode is TradeMode.Export or TradeMode.Maintain)
             {
@@ -165,30 +167,34 @@ namespace MGAutoSell
             return false;
         }
 
-        private static Material grayMat;
-        private static Material grayMatOver;
+        private static Texture2D suspendTex;
+        private static Texture2D grayTexOver;
         private static readonly int instanceID = TexButton.Suspend.GetInstanceID();
+
+        private static Texture2D BakeGrayscale(Texture2D source, Color tint)
+        {
+            var mat = MaterialPool.MatFrom(source, ShaderDatabase.GrayscaleGUI, tint);
+            var prev = RenderTexture.active;
+            var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(source, rt, mat);
+            RenderTexture.active = rt;
+            var baked = new Texture2D(source.width, source.height, TextureFormat.ARGB32, false);
+            baked.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+            baked.Apply();
+            RenderTexture.active = prev;
+            RenderTexture.ReleaseTemporary(rt);
+            return baked;
+        }
+
         private static bool DrawGreyscaleIconButton(Rect rect, string tooltip = null, bool doMouseoverSound = true)
         {
             if (doMouseoverSound)
                 MouseoverSounds.DoRegion(rect);
             var mouseOver = Mouse.IsOver(rect);
 
-            var texture = TexButton.Suspend;
+            grayTexOver ??= BakeGrayscale(TexButton.Suspend, GenUI.MouseoverColor);
 
-            grayMat ??= MaterialPool.MatFrom(
-                texture,
-                ShaderDatabase.GrayscaleGUI,
-                Color.white
-            );
-            grayMatOver ??= MaterialPool.MatFrom(
-                texture,
-                ShaderDatabase.GrayscaleGUI,
-                GenUI.MouseoverColor
-            );
-
-
-            Graphics.DrawTexture(rect, texture, mouseOver ? grayMatOver : grayMat);
+            GUI.DrawTexture(rect, mouseOver ? grayTexOver : suspendTex);
 
             var clicked = DoClickWithoutBlocking(rect, instanceID);
 

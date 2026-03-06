@@ -13,15 +13,16 @@ using LudeonTK;
 using RimWorld;
 using TD_Find_Lib;
 using UnityEngine;
+using UnityEngine.UIElements;
 using Verse;
 using Verse.Noise;
 using static HarmonyLib.Code;
 
 namespace MGAutoSell
 {
-    public record ItemsToSell(List<SellRecord> Items, float TotalSilver, TraderRecord Trader, Dictionary<TradeRule, List<RuleRecord>> Rules);
+    public record ItemsToSell(List<SellRecord> Items, float TotalSilver, string TotalSilverLabel, TraderRecord Trader, Dictionary<TradeRule, List<RuleRecord>> Rules);
     public record SellRecord(ThingDef Item, int Count, float Total, string PricePerLabel, string TotalLabel);
-    public record TraderRecord(string Name, Texture Icon, string Improvement);
+    public record TraderRecord(Pawn pawn, string Name, Texture2D Icon, string ImprovementLabel, float Improvement);
     public record RuleRecord(ThingDef Item, int Count);
     public class MainTabWindow_FindAndAutoSell : MainTabWindow
     {
@@ -29,6 +30,8 @@ namespace MGAutoSell
 
         private TradeRulesGameComp comp;
         private TradeRuleEditor editor;
+
+        private Pawn SellerOverride;
 
         private long nextCache = 0;
         private long nextQuickCache = 0;
@@ -222,17 +225,59 @@ namespace MGAutoSell
             var iconRect = footer.LeftPartPixels(Text.LineHeight);
             iconRect.y -= 4;
             GUI.DrawTexture(iconRect, sellCache.Trader.Icon);
-            //TradeSession.playerNegotiator.GetStatValue(StatDefOf.TradePriceImprovement).ToStringPercent()
-            Widgets.Label(footer.RightPartPixels(footer.width - Text.LineHeight), sellCache.Trader.Name + $" ({sellCache.Trader.Improvement})");
+
+            var sellerLabel = sellCache.Trader.Name + $" ({sellCache.Trader.ImprovementLabel})";
+            if (SellerOverride != null)
+                sellerLabel = $"<i>{sellerLabel}</i>";
+            var sellerLabelWidth = Text.CalcSize(sellerLabel);
+            Widgets.Label(footer.RightPartPixels(footer.width - Text.LineHeight), sellerLabel);
+            var sellerOverrideRect = footer.LeftPartPixels(iconRect.width + sellerLabelWidth.x + 8);
+            Widgets.DrawHighlightIfMouseover(sellerOverrideRect);
+            if (Widgets.ButtonInvisible(sellerOverrideRect) && Event.current.button == (int)MouseButton.RightMouse)
+            {
+                var pawns = GetTraders().Select(x => new FloatMenuOption(
+                    x.Name + $" ({x.ImprovementLabel})", () =>
+                    {
+                        SellerOverride = x.pawn;
+                        nextCache = 0;
+                    }, x.pawn, Color.white)).ToList();
+
+                if(SellerOverride != null)
+                    pawns.Add(new FloatMenuOption("Auto", () =>
+                    {
+                        SellerOverride = null;
+                        nextCache = 0;
+                    }));
+
+                Find.WindowStack.Add(new FloatMenu(pawns));
+            }
 
             var footerRow = new WidgetRow(footer.xMax - 4, footer.y, UIDirection.LeftThenDown);
-            footerRow.Label(sellCache.TotalSilver.ToStringMoney());
+            footerRow.Label(sellCache.TotalSilverLabel);
             footerRow.Icon(ThingDefOf.Silver.uiIcon);
             footerRow.Label("Total:");
             Text.Font = font;
 #if DEBUG
             ticks.Add(Stopwatch.GetTimestamp() - timestamp);
 #endif
+        }
+
+        public List<TraderRecord> GetTraders()
+        {
+            var stat = StatDefOf.TradePriceImprovement;
+            var pawns = Find.CurrentMap.mapPawns.FreeColonists
+                .Where(pawn => pawn.RaceProps.Humanlike && !stat.Worker.IsDisabledFor(pawn))
+                .Select(pawn =>
+                {
+                    var improvement = pawn.GetStatValue(stat) + (ModsConfig.IdeologyActive && pawn == Faction.OfPlayer.leader ? 0.02f : 0f);
+                    return new TraderRecord(pawn, pawn.Name.ToStringFull,
+                        PortraitsCache.Get(pawn, new Vector2(24, 24), Rot4.South,
+                            ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f).CreateTexture2D(),
+                        improvement.ToStringPercent(), improvement);
+                })
+                .OrderByDescending(x => x.Improvement)
+                .ToList();
+            return pawns;
         }
 
         public void CacheItemsToSell(bool force = false)
@@ -279,10 +324,7 @@ namespace MGAutoSell
                 }
             }
 
-            var stat = StatDefOf.TradePriceImprovement;
-            var socialPawn = Find.CurrentMap.mapPawns.FreeColonists
-                .Where(x => x.RaceProps.Humanlike && !stat.Worker.IsDisabledFor(x))
-                .MaxBy(x => x.GetStatValue(stat));
+            var socialPawn = SellerOverride ?? GetTraders().MaxBy(x => x.Improvement).pawn;
 
             var traderPriceType = PriceType.Normal.PriceMultiplier();
             var playerNegotiator = socialPawn.GetStatValue(StatDefOf.TradePriceImprovement);
@@ -321,17 +363,18 @@ namespace MGAutoSell
             .OrderByDescending(x => x.Total)
             .ToList();
 
-
             // TODO Hmmm ok, this is too dense...
+            var totalSilver = (float)Math.Round(sellEntries.Sum(x => x.Total), 0);
             sellCache = new ItemsToSell(
                 Items: sellEntries,
 
-                TotalSilver: (float)Math.Round(sellEntries.Sum(x => x.Total), 0),
+                TotalSilver: totalSilver,
+                TotalSilverLabel: totalSilver.ToStringMoney(),
 
-                Trader: new TraderRecord(
+                Trader: new TraderRecord(socialPawn,
                     socialPawn.Name.ToStringFull,
-                    PortraitsCache.Get(socialPawn, new Vector2(24, 24), Rot4.South, ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f),
-                    playerNegotiator.ToStringPercent()),
+                    PortraitsCache.Get(socialPawn, new Vector2(24, 24), Rot4.South, ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f).CreateTexture2D(),
+                    playerNegotiator.ToStringPercent(), playerNegotiator),
 
                 Rules: ruleDictionary.ToDictionary(x => x.Key,
                     x => x.Value.GroupBy(y => y.def)
