@@ -96,7 +96,8 @@ namespace MGAutoSell
 
             var rulesRect = inRect.LeftPartPixels(width);
 
-            if (editor != null)
+            var showEditor = editor != null;
+            if (showEditor)
             {
                 editor.DoWindowContents(rulesRect);
                 var buttonRect = rulesRect.BottomPartPixels(30f).LeftPartPixels(30f);
@@ -211,10 +212,13 @@ namespace MGAutoSell
                 Widgets.Label(row, thingDef.GetLabel() + $" x{count}");
                 row.x -= row.height + 10;
 
-                var middle = row.MiddlePartPixels(50, row.height);
-                Text.Anchor = TextAnchor.MiddleCenter;
-                Widgets.Label(middle, pricePerLabel);
-                Text.Anchor = anchor;
+                if (!showEditor)
+                {
+                    var middle = row.MiddlePartPixels(50, row.height);
+                    Text.Anchor = TextAnchor.MiddleCenter;
+                    Widgets.Label(middle, pricePerLabel);
+                    Text.Anchor = anchor;
+                }
 
                 var size = Text.CalcSize(totalLabel);
                 Widgets.Label(row.RightPartPixels(size.x + 4), totalLabel);
