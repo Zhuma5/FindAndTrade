@@ -569,7 +569,7 @@ namespace MGAutoSell
 
         public void CreateRule()
         {
-            Find.WindowStack.Add(new Dialog_Name("TD.NewAlert".Translate(), n =>
+            Find.WindowStack.Add(new Dialog_Name("MGAutoSell.NameForNew".Translate(), n =>
                 {
                     TradeRule tradeRule = new(n);
                     comp.tradeRules.Add(tradeRule);
@@ -577,7 +577,7 @@ namespace MGAutoSell
                     editor = new TradeRuleEditor(tradeRule);
                     currentTab = WindowTab.Edit;
                 },
-                "TD.NameForNewAlert".Translate(),
+                "MGAutoSell.NewTradeRule".Translate(),
                 name => comp.tradeRules.Any(x => name == x.Search.name)));
         }
 

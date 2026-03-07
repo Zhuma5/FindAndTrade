@@ -16,4 +16,7 @@
 
     <MGAutoSell.Title>Find / Trade</MGAutoSell.Title>
     <MGAutoSell.AutoSellToggle>Trade Automatically</MGAutoSell.AutoSellToggle>
+
+    <MGAutoSell.NameForNew>Trade Rule</MGAutoSell.NameForNew>
+    <MGAutoSell.NewTradeRule>Name for New Rule</MGAutoSell.NewTradeRule>
 </LanguageData>
