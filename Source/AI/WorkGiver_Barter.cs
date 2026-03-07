@@ -36,9 +36,9 @@ namespace MGAutoSell.AI
                     return map.passingShipManager.passingShips.Any(x =>
                         x is TradeShip tradeShip &&
                         pawn.CanTradeWith(tradeShip.Faction, ((ITrader)tradeShip).TraderKind) &&
-                        !comp.traders.Contains(tradeShip));
+                        (forced || !comp.traders.Contains(tradeShip)));
                 case Pawn trader:
-                    return pawn.CanTradeWith(trader.Faction, trader.TraderKind) && !comp.traders.Contains(trader);
+                    return pawn.CanTradeWith(trader.Faction, trader.TraderKind) && (forced || !comp.traders.Contains(trader));
                 default:
                     return false;
             }
