@@ -62,7 +62,7 @@ namespace MGAutoSell
             GroupedTrading = false;
         }
 
-        [DebugAction("FindAndAutoSell", "DoTrade")]
+        [DebugAction("FindAndTrade", "DoTrade")]
         public static void DEBUG_DoTrade()
         {
             var pawn = Find.CurrentMap.mapPawns.PawnsInFaction(Faction.OfPlayer);

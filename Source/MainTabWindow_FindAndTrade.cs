@@ -27,7 +27,7 @@ namespace MGAutoSell
 
     public record RuleRecord(ThingDef Item, int Count);
 
-    public class MainTabWindow_FindAndAutoSell : MainTabWindow
+    public class MainTabWindow_FindAndTrade : MainTabWindow
     {
         public ItemsToSell sellCache;
         private List<TraderRecord> tradersCache;
@@ -61,7 +61,7 @@ namespace MGAutoSell
 
         private Color _fadedColor = new(1, 1, 1, 0.4f);
 
-        public MainTabWindow_FindAndAutoSell()
+        public MainTabWindow_FindAndTrade()
         {
             preventCameraMotion = false;
             doCloseX = true;
@@ -635,7 +635,7 @@ namespace MGAutoSell
                 if (Find.CurrentMap == null) return;
 
                 // Pick the tab you want.
-                var def = MainTabDefOf.FindAndAutoSell; // e.g. MainButtonDefOf.Assign, Architect, Research, etc.
+                var def = MainTabDefOf.FindAndTrade; // e.g. MainButtonDefOf.Assign, Architect, Research, etc.
                 Find.MainTabsRoot.SetCurrentTab(def, playSound: false);
 
                 //CloseDevConsole();
@@ -663,7 +663,7 @@ namespace MGAutoSell
     [DefOf]
     public static class MainTabDefOf
     {
-        public static MainButtonDef FindAndAutoSell;
+        public static MainButtonDef FindAndTrade;
     }
 
     public enum WindowTab

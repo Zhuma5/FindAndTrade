@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-	<name>Find and Auto Sell</name>
+	<name>Find and Trade</name>
 	<author>Meme Goddess</author>
 	<supportedVersions>
 		<li>1.6</li>
 	</supportedVersions>
-	<packageId>Memegoddess.FindAndAutoSell</packageId>
-	<description>Find items, and auto sell them.</description>
+	<packageId>Memegoddess.FindAndTrade</packageId>
+	<description>Find items, and auto trade them.</description>
 	<url>https://steamcommunity.com/sharedfiles/filedetails/?id=3526439840</url>
 	<modDependencies>
 		<li>

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Defs>
     <MainButtonDef>
-        <defName>FindAndAutoSell</defName>
-        <label>find and auto sell</label>
-        <description>Find items, and automate selling.</description>
-        <tabWindowClass>MGAutoSell.MainTabWindow_FindAndAutoSell</tabWindowClass>
+        <defName>FindAndTrade</defName>
+        <label>find / trade</label>
+        <description>Find items, and automate trading.</description>
+        <tabWindowClass>MGAutoSell.MainTabWindow_FindAndTrade</tabWindowClass>
         <validWithoutMap>true</validWithoutMap>
         <minimized>True</minimized>
         <iconPath>TradeWindowIcon</iconPath>
