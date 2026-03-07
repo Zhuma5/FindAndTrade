@@ -14,6 +14,7 @@ namespace MGAutoSell
         public HashSet<ITrader> traders = new();
 
         public bool autoTrade = false;
+        public HashSet<int> autoTraderIDs = new();
 
         public TradeRulesGameComp(Game game)
         {
@@ -27,9 +28,11 @@ namespace MGAutoSell
             Scribe_Collections.Look(ref traders, nameof(traders), LookMode.Reference);
 
             Scribe_Values.Look(ref autoTrade, nameof(autoTrade));
+            Scribe_Collections.Look(ref autoTraderIDs, nameof(autoTraderIDs));
 
             tradeRules ??= new();
             traders ??= new();
+            autoTraderIDs ??= new();
         }
     }
 }

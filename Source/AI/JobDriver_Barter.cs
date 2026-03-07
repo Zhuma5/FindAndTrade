@@ -27,17 +27,21 @@ namespace MGAutoSell.AI
             yield return Toils_Goto.GotoThing(TargetIndex.A, TargetThingA is Building_CommsConsole ? PathEndMode.InteractionCell : PathEndMode.Touch)
                 .FailOn(failOn);
 
-           
+            var wait = ToilMaker.MakeToil();
+            wait.defaultCompleteMode = ToilCompleteMode.Delay;
+            wait.activeSkill = () => SkillDefOf.Social;
+            if (TargetThingA is Building_CommsConsole)
+                wait.defaultDuration = 600;
+            wait.FailOn(failOn);
+            yield return wait.WithProgressBarToilDelay(TargetIndex.B, wait.defaultDuration);
+
             yield return DoTrade(failOn);
         }
 
         private Toil DoTrade(Func<bool> failOn)
         {
             var trade = ToilMaker.MakeToil();
-            trade.defaultCompleteMode = ToilCompleteMode.Delay;
             trade.activeSkill = () => SkillDefOf.Social;
-            if(TargetThingA is Building_CommsConsole)
-                trade.defaultDuration = 600;
             trade.FailOn(failOn);
             trade.finishActions =
             [
@@ -56,7 +60,7 @@ namespace MGAutoSell.AI
                 }
             ];
 
-            return trade.WithProgressBarToilDelay(TargetIndex.B, 600);
+            return trade;
         }
     }
 }

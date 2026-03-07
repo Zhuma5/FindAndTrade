@@ -29,7 +29,7 @@ namespace MGAutoSell
 
     public record SellRecord(ThingDef Item, int Count, float Total, string PricePerLabel, string TotalLabel);
 
-    public record TraderRecord(Pawn Pawn, string Name, Texture2D Icon, string ImprovementLabel, float Improvement, bool IsLeader);
+    public record TraderRecord(Pawn Pawn, string Name, Texture Icon, string ImprovementLabel, float Improvement, bool IsLeader);
 
     public record RuleRecord(ThingDef Item, int Count);
 
@@ -80,12 +80,15 @@ namespace MGAutoSell
             comp = Current.Game.GetComponent<TradeRulesGameComp>();
         }
 
-        public override void Close(bool doCloseSound = true)
+        public override void PostClose()
         {
             editor?.PostClose();
             editor = null;
             SelectedTradeRule = null;
-            base.Close(doCloseSound);
+            currentTab = WindowTab.Rules;
+            tradersCache = null;
+            nextCache = 0;
+            base.PostClose();
         }
 
 
@@ -107,7 +110,7 @@ namespace MGAutoSell
             var font = Text.Font;
             Text.Font = GameFont.Small;
 
-            var width = currentTab == WindowTab.Rules ? 400f : 600f;
+            var width = currentTab == WindowTab.Edit ? 600f : 400f;
             var leftPanel = inRect.LeftPartPixels(width);
 
             switch (currentTab)
@@ -165,7 +168,7 @@ namespace MGAutoSell
             GUI.color = color;
 
             if (!showSettingsIcon || !Widgets.ButtonImage(
-                    headerRect.MiddlePartPixels(headerRect.width, Text.LineHeight).RightPartPixels(Text.LineHeight),
+                    headerRect.TopPartPixels(Text.LineHeight).RightPartPixels(Text.LineHeight),
                     Textures.OptionsGeneral, _fadedColor)) return;
 
             tradersCache = GetTraders();
@@ -196,43 +199,66 @@ namespace MGAutoSell
                 return;
             }
 
-            body.SplitHorizontally(Text.LineHeight, out var autoSellRect, out var drawer);
+            body.SplitHorizontally(Text.LineHeight, out var autoSellRect, out body);
+            body.SplitHorizontally(4f, out var gap, out var drawer);
+            
             Widgets.CheckboxLabeled(autoSellRect, tradeAutomaticallyLabel, ref comp.autoTrade);
 
-            var spacePerRow = Text.LineHeight;
+            var color = GUI.color;
+            GUI.color = _fadedColor;
+            Widgets.DrawLineHorizontal(gap.x + 5, gap.y + 2, gap.width - 10);
+            GUI.color = color;
+
+            var spacePerRow = 24;
             var totalHeight = tradersCache.Count * spacePerRow;
             var shouldScroll = totalHeight > drawer.height;
             var listing = new Listing_StandardIndent();
             if (shouldScroll)
-                listing.BeginScrollView(drawer, ref settingScroll, drawer.LeftPartPixels(drawer.width - 16).AtZero());
+                listing.BeginScrollView(drawer, ref settingScroll, drawer.LeftPartPixels(drawer.width - 16).TopPartPixels(totalHeight).AtZero());
             else
                 listing.Begin(drawer);
 
             for (var i = 0; i < tradersCache.Count; i++)
             {
                 var trader = tradersCache[i];
+                var enabled = comp.autoTraderIDs.Contains(trader.Pawn.thingIDNumber);
+                var prev = enabled;
                 var rect = listing.GetRect(spacePerRow);
                 if (i % 2 == 1)
                     Widgets.DrawLightHighlight(rect);
-                var row = new WidgetRow(rect.x, rect.y, maxWidth: rect.width);
-                
-                var iconRect = row.GetRect(spacePerRow);
+
+                rect.SplitVertically(spacePerRow, out var iconRect, out rect);
+                rect.SplitVertically(rect.width / 2, out var labelRect, out rect);
+
                 iconRect.y -= 4;
                 GUI.DrawTexture(iconRect, trader.Icon);
 
-                row.Label($"{trader.Name} ({trader.ImprovementLabel})");
+                Widgets.Label(labelRect, $"{trader.Name} ({trader.ImprovementLabel})");
+
+                rect.SplitVertically(rect.width - spacePerRow, out rect, out var checkboxRect);
+                Widgets.Checkbox(checkboxRect.x, checkboxRect.y, ref enabled, spacePerRow, paintable: true);
+                if (enabled != prev)
+                {
+                    if (enabled)
+                        comp.autoTraderIDs.Add(trader.Pawn.thingIDNumber);
+                    else
+                        comp.autoTraderIDs.Remove(trader.Pawn.thingIDNumber);
+                }
 
                 if (trader.IsLeader)
                 {
                     var role = trader.Pawn.Ideo.GetRole(trader.Pawn);
                     if(role != null)
                     {
-                        var color = GUI.color;
                         GUI.color = trader.Pawn.ideo.Ideo.Color;
-                        row.Icon(role.Icon, role.TipLabel);
+                        rect.SplitVertically(rect.width - spacePerRow, out rect, out var leaderIconRect);
+                        GUI.DrawTexture(leaderIconRect, role.Icon);
+                        TooltipHandler.TipRegion(leaderIconRect, role.TipLabel);
                         GUI.color = color;
                     }
                 }
+
+                
             }
 
             var height = 0f;
@@ -253,7 +279,7 @@ namespace MGAutoSell
 
             if (Event.current.type == EventType.Repaint)
                 reorderID = ReorderableWidget.NewGroup(DoReorderSearch, ReorderableDirection.Vertical,
-                    new Rect(0.0f, -30, drawerListing.ColumnWidth, height + 30), 1f,
+                    new Rect(0.0f, -30, drawerListing.ColumnWidth, height + 30), -1f,
                     (index, _) =>
                         DrawMouseAttachedQuerySearch(comp.tradeRules[index].Search, drawerListing.ColumnWidth));
 
@@ -292,7 +318,7 @@ namespace MGAutoSell
 #if DEBUG
             var color = GUI.color;
             GUI.color = _fadedColor;
-            var controls = new WidgetRow(controlsRect.xMax, controlsRect.y, UIDirection.LeftThenDown);
+            var controls = new WidgetRow(controlsRect.xMax, controlsRect.yMax - Text.LineHeight, UIDirection.LeftThenDown);
             controls.Label($"<i> Render: {previousRenderTime}</i>");
             GUI.color = color;
 #endif
@@ -327,7 +353,7 @@ namespace MGAutoSell
                 Widgets.Label(row, thingDef.GetLabel() + $" x{count}");
                 row.x -= row.height + 10;
 
-                if (currentTab == WindowTab.Rules)
+                if (currentTab != WindowTab.Edit)
                 {
                     var middle = row.MiddlePartPixels(50, row.height);
                     Text.Anchor = TextAnchor.MiddleCenter;
@@ -388,15 +414,15 @@ namespace MGAutoSell
                 .Select(pawn =>
                 {
                     var isLeader = ModsConfig.IdeologyActive && pawn == Faction.OfPlayer.leader;
-                    var improvement = pawn.GetStatValue(stat) +
-                                      (isLeader ? 0.02f : 0f);
+                    var improvement = pawn.GetStatValue(stat);
 
-                    return new TraderRecord(pawn, pawn.Name.ToStringFull,
+                    return new TraderRecord(pawn, pawn.LabelShort,
                         PortraitsCache.Get(pawn, new Vector2(24, 24), Rot4.South,
-                            ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f).CreateTexture2D(),
+                            ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f),
                         improvement.ToStringPercent(), improvement, isLeader);
                 })
-                .OrderByDescending(x => x.Improvement)
+                .OrderByDescending(x => x.IsLeader)
+                .ThenByDescending(x => x.Improvement)
                 .ToList();
             return pawns;
         }
@@ -444,18 +470,24 @@ namespace MGAutoSell
                 }
             }
 
-            var socialPawn = SellerOverride ?? GetTraders().MaxBy(x => x.Improvement).Pawn;
+            var traders = GetTraders();
+            if (comp.autoTrade)
+            {
+                var allowedTraders = traders.Where(x => comp.autoTraderIDs.Contains(x.Pawn.thingIDNumber)).ToList();
+                if (allowedTraders.Any())
+                    traders = allowedTraders;
+            }
+
+            var socialPawn = SellerOverride ?? traders.MaxBy(x => x.Improvement).Pawn;
 
             var traderPriceType = PriceType.Normal.PriceMultiplier();
             var playerNegotiator = socialPawn.GetStatValue(StatDefOf.TradePriceImprovement);
             var isLeader = ModsConfig.IdeologyActive && socialPawn == Faction.OfPlayer.leader;
-            var leaderBonus = isLeader ? 0.02f : 0f;
             var settlement = socialPawn.TradePriceImprovementOffsetForPlayer;
             var drugBonusRaw = socialPawn.GetStatValue(StatDefOf.DrugSellPriceImprovement);
             var animalProduceBonusRaw = ModsConfig.IdeologyActive
                 ? socialPawn.GetStatValue(StatDefOf.AnimalProductsSellImprovement)
                 : 0f;
-            var totalNegotiator = playerNegotiator + leaderBonus;
             thingDictionary.RemoveAll(x => !x.Value.Any());
             var sellEntries = thingDictionary.Select(x =>
                 {
@@ -469,7 +501,7 @@ namespace MGAutoSell
                         ? 0.6f
                         : 1f;
                     var priceTotal = items.Select(y => TradeUtility.GetPricePlayerSell(y, traderPriceType, humanPawn,
-                        totalNegotiator, settlement, drugBonus, animalProduceBonus) * y.stackCount).Sum();
+                        playerNegotiator, settlement, drugBonus, animalProduceBonus) * y.stackCount).Sum();
                     var itemsTotal = items.Sum(x => x.stackCount);
                     var pricePer = priceTotal / itemsTotal;
                     var sellDown = sellDictionary.TryGetValue(thingDef);
@@ -501,7 +533,7 @@ namespace MGAutoSell
                 TotalSilverLabel: totalSilver.ToStringMoney(),
 
                 Trader: new TraderRecord(socialPawn,
-                    socialPawn.Name.ToStringFull,
+                    socialPawn.LabelShort,
                     PortraitsCache.Get(socialPawn, new Vector2(24, 24), Rot4.South,
                         ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f).CreateTexture2D(),
                     playerNegotiator.ToStringPercent(), playerNegotiator, isLeader),
