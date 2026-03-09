@@ -19,4 +19,13 @@
 
     <MGAutoSell.NameForNew>Trade Rule</MGAutoSell.NameForNew>
     <MGAutoSell.NewTradeRule>Name for New Rule</MGAutoSell.NewTradeRule>
+
+    <MGAutoSell.Mode.Export>Export</MGAutoSell.Mode.Export>
+    <MGAutoSell.Mode.Import>Import</MGAutoSell.Mode.Import>
+    <MGAutoSell.Mode.Maintain>Maintain</MGAutoSell.Mode.Maintain>
+    
+    <MGAutoSell.Invalid>Invalid Rule:\n\n{0}</MGAutoSell.Invalid>
+    <MGAutoSell.InvalidRange>This rule is invalid because you are trying to have at least {0}, and at most {1}.\nImport must be larger than Export.</MGAutoSell.InvalidRange>
+    <MGAutoSell.InvalidBuy>This rule is invalid because you are trying to import {0}.</MGAutoSell.InvalidBuy>
+    <MGAutoSell.Basically>This Maintain rule is basically an {0} rule, since your {1} amount is not greater than 0.</MGAutoSell.Basically>
 </LanguageData>

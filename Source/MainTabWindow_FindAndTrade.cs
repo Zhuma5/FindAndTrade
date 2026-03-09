@@ -21,11 +21,11 @@ namespace MGAutoSell
         float TotalSilver,
         string TotalSilverLabel,
         TraderRecord Trader,
-        Dictionary<TradeRule, List<RuleRecord>> Rules);
+        Dictionary<TradeRule, string> Rules);
 
     public record SellRecord(ThingDef Item, int Count, float Total, string PricePerLabel, string TotalLabel);
 
-    public record TraderRecord(Pawn Pawn, string Name, Texture Icon, string ImprovementLabel, float Improvement, bool IsLeader);
+    public record TraderRecord(Pawn Pawn, string Name, Func<Texture> Icon, string ImprovementLabel, float Improvement, bool IsLeader);
 
     public record RuleRecord(ThingDef Item, int Count);
 
@@ -228,7 +228,7 @@ namespace MGAutoSell
                 rect.SplitVertically(rect.width / 2, out var labelRect, out rect);
 
                 iconRect.y -= 4;
-                GUI.DrawTexture(iconRect, trader.Icon);
+                GUI.DrawTexture(iconRect, trader.Icon.Invoke());
 
                 Widgets.Label(labelRect, $"{trader.Name} ({trader.ImprovementLabel})");
 
@@ -412,7 +412,7 @@ namespace MGAutoSell
 
             var iconRect = footer.LeftPartPixels(Text.LineHeight);
             iconRect.y -= 4;
-            GUI.DrawTexture(iconRect, sellCache.Trader.Icon);
+            GUI.DrawTexture(iconRect, sellCache.Trader.Icon.Invoke());
 
             var sellerLabel = sellCache.Trader.Name + $" ({sellCache.Trader.ImprovementLabel})";
             if (SellerOverride != null)
@@ -459,8 +459,8 @@ namespace MGAutoSell
                     var improvement = pawn.GetStatValue(stat);
 
                     return new TraderRecord(pawn, pawn.LabelShort,
-                        generatePictures ? PortraitsCache.Get(pawn, new Vector2(24, 24), Rot4.South,
-                            ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f) : null,
+                        generatePictures ? () => PortraitsCache.Get(pawn, new Vector2(24, 24), Rot4.South,
+                            ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f) : () => null,
                         improvement.ToStringPercent(), improvement, isLeader);
                 })
                 .OrderByDescending(x => x.IsLeader)
@@ -501,7 +501,8 @@ namespace MGAutoSell
                          x is { Enabled: true, AllowSell: true } && x.search.Children.queries.Any()))
             {
                 var items = allItems.Where(x => rule.search.AppliesTo(x)).ToList();
-                ruleDictionary[rule] = items;
+                if(items.Any())
+                    ruleDictionary[rule] = items;
 
                 items.ForEach(x => { allItems.Remove(x); });
 
@@ -572,10 +573,20 @@ namespace MGAutoSell
                 .ToList();
 
             // TODO Hmmm ok, this is too dense...
-            itemCache ??= DefDatabase<ThingDef>.AllDefsListForReading.Select(y => ThingMaker.MakeThing(y, y.defaultStuff)).ToList();
+            itemCache ??= DefDatabase<ThingDef>.AllDefsListForReading.Select(y => ThingMaker.MakeThing(y, y.MadeFromStuff ? GenStuff.DefaultStuffFor(y) : null)).ToList();
             var potentialItems = itemCache.Where(x => comp.tradeRules.Any(y => y.Enabled && y.search.Children.queries.Any() && y.AllowBuy &&  y.search.AppliesTo(x))).Select(x => x.def).ToList();
             potentialItems.RemoveAll(x => sellEntries.Any(y => y.Item == x));
             var totalSilver = (float)Math.Round(sellEntries.Sum(x => x.Total), 0);
+
+            var ruleCounts = Mod.Settings.showQuanityInsteadOfLabel
+                ? ruleDictionary.ToDictionary(x => x.Key,
+                    x => "x" + (x.Key.Aggregation == TradeRuleAggregation.ThingDef
+                        ? x.Value.GroupBy(y => y.def)
+                            .Select(y => new RuleRecord(y.Key, y.ToList().Sum(z => z.stackCount)))
+                            .Max(x => x.Count).ToString()
+                        : x.Value.Sum(y => y.stackCount).ToString()))
+                : [];
+
             sellCache = new ItemsToSell(
                 Items: sellEntries,
                 PotentialItems: potentialItems,
@@ -584,13 +595,12 @@ namespace MGAutoSell
 
                 Trader: new TraderRecord(socialPawn,
                     socialPawn.LabelShort,
-                    PortraitsCache.Get(socialPawn, new Vector2(24, 24), Rot4.South,
+                    () => PortraitsCache.Get(socialPawn, new Vector2(24, 24), Rot4.South,
                         ColonistBarColonistDrawer.PawnTextureCameraOffset, 1.28205f),
                     playerNegotiator.ToStringPercent(), playerNegotiator, isLeader),
 
-                Rules: ruleDictionary.ToDictionary(x => x.Key,
-                    x => x.Value.GroupBy(y => y.def)
-                        .Select(y => new RuleRecord(y.Key, y.ToList().Sum(z => z.stackCount))).ToList()));
+                Rules: ruleCounts);
+            sellCache.Rules.RemoveAll(x => string.IsNullOrWhiteSpace(x.Value));
 
             nextCache = Find.TickManager.TicksGame + 3600;
             nextQuickCache = DateTime.UtcNow.AddSeconds(1).Ticks;

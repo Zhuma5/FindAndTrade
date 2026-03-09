@@ -18,7 +18,7 @@ namespace MGAutoSell.Filter
         {
             get
             {
-                _hash ??= search.GetHashCode();
+                _hash ??= GetHashCode();
                 return _hash.Value;
             }
         }
@@ -29,7 +29,7 @@ namespace MGAutoSell.Filter
         public bool AllowSell => (Export > 0 || NoConfig) && Mode is TradeMode.Export or TradeMode.Maintain;
         public bool AllowBuy => Import > 0 && Mode is TradeMode.Import or TradeMode.Maintain;
 
-        public bool NoConfig => Export == 0 && Import == 0;
+        public bool NoConfig => Export == 0 && (Mode == TradeMode.Export || Import == 0);
         public bool Invalid => Export > 0 && Import > 0 && Import > Export || Import < 0 || Export < 0;
 
         public void ExposeData()
