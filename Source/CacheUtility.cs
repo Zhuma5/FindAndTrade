@@ -116,7 +116,7 @@ namespace MGAutoSell
             if (!Mod.Settings.showAllMatchingItems)
                 return [];
 
-            itemCache ??= DefDatabase<ThingDef>.AllDefsListForReading.Select(y => ThingMaker.MakeThing(y, y.MadeFromStuff ? GenStuff.DefaultStuffFor(y) : null)).ToList();
+            itemCache ??= GenerateItemCache();
             var potentialItems = rules.Where(x => x.Enabled && x.AllowBuy).SelectMany(x => x.search.AllItems ??= x.search.GetPossibleItems()).Distinct().ToList();
             potentialItems.RemoveAll(x => sellEntries.Any(y => y.Item == x));
             return potentialItems;
@@ -124,12 +124,19 @@ namespace MGAutoSell
 
         public static List<ThingDef> GetPossibleItems(this QuerySearch search)
         {
-            itemCache ??= DefDatabase<ThingDef>.AllDefsListForReading.Select(y => ThingMaker.MakeThing(y, y.MadeFromStuff ? GenStuff.DefaultStuffFor(y) : null)).ToList();
+            itemCache ??= GenerateItemCache();
 
-            if(!search.Children.queries.Any(x => x.Enabled))
+            if (!search.Children.queries.Any(x => x.Enabled))
                 return [];
 
             return itemCache.Where(x => search.AppliesTo(x)).Select(x => x.def).ToList();
+        }
+
+        public static List<Thing> GenerateItemCache()
+        {
+            var traders = DefDatabase<TraderKindDef>.AllDefsListForReading;
+
+            return DefDatabase<ThingDef>.AllDefsListForReading.Where(x => traders.Any(trader => trader.WillTrade(x))).Select(y => ThingMaker.MakeThing(y, y.MadeFromStuff ? GenStuff.DefaultStuffFor(y) : null)).ToList();
         }
     }
 }

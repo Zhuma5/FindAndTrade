@@ -22,7 +22,7 @@ namespace MGAutoSell
 
         private const int ArrowSize = 8;
         private const int LabelSize = 60;
-        private const int BoxSize = 35;
+        private const int BoxSize = 40;
 
         private const int AnnoyingUnavoidableGap = 4;
 
@@ -88,6 +88,7 @@ namespace MGAutoSell
             {
                 if (invalidSell) 
                     GUI.color = Invalid;
+                
                 var tooltip = right.TextFieldNumeric<int>(ref item.Export, ref item.ExportBuffer, BoxSize);
                 if (invalidSell)
                     TooltipHandler.TipRegion(tooltip, () => TagInvalid.Formatted(GetInvalidMessage(item.Import, item.Export, item.Mode)), item.Hash);

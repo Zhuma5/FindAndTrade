@@ -106,7 +106,7 @@ namespace MGAutoSell
             var font = Text.Font;
             Text.Font = GameFont.Small;
 
-            var width = currentTab == WindowTab.Edit ? 600f : 400f;
+            var width = currentTab == WindowTab.Edit ? 600f : 450f;
             var leftPanel = inRect.LeftPartPixels(width);
 
             switch (currentTab)
@@ -345,10 +345,22 @@ namespace MGAutoSell
                 listing.BeginScrollView(viewRect, ref sellScroll, viewRect.LeftPartPixels(viewRect.width - 16).TopPartPixels(totalHeight).AtZero() );
             }
 
+            var minRenderIndex = shouldScroll ? Math.Floor(sellScroll.y / Text.LineHeight) : 0;
+            var maxRenderIndex = shouldScroll ? Math.Ceiling(viewRect.height / Text.LineHeight) + minRenderIndex : 0;
+            int index = -1;
             foreach (var (thingDef, count, total, pricePerLabel, totalLabel) in sellCache.Items)
             {
+                index++;
+
                 if (shouldScroll)
+                {
+                    if(index < minRenderIndex || index > maxRenderIndex)
+                    {
+                        listing.Gap(Text.LineHeight);
+                        continue;
+                    }
                     row = listing.GetRect(Text.LineHeight);
+                }
                 else
                     viewRect.SplitHorizontally(Text.LineHeight, out row, out viewRect);
 
@@ -380,13 +392,23 @@ namespace MGAutoSell
             {
                 foreach (var thingDef in sellCache.PotentialItems)
                 {
+                    index++;
+
                     if (shouldScroll)
+                    {
+                        if (index < minRenderIndex || index > maxRenderIndex)
+                        {
+                            listing.Gap(Text.LineHeight);
+                            continue;
+                        }
                         row = listing.GetRect(Text.LineHeight);
+                    }
                     else
                         viewRect.SplitHorizontally(Text.LineHeight, out row, out viewRect);
 
                     if (i % 2 == 1)
                         Widgets.DrawLightHighlight(row);
+
                     i++;
                     var color = GUI.color;
                     GUI.color = thingDef.uiIconColor;
