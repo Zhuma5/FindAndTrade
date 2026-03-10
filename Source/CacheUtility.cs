@@ -111,14 +111,17 @@ namespace MGAutoSell
                         : x.Value.Sum(y => y.stackCount).ToString()));
         }
 
-        public static List<ThingDef> GetPossibleItemsList(this TradeRulesGroup rules, List<SellRecord> sellEntries)
+        public static List<PotentialItem> GetPossibleItemsList(this TradeRulesGroup rules, List<SellRecord> sellEntries)
         {
             if (!Mod.Settings.showAllMatchingItems)
                 return [];
 
             itemCache ??= GenerateItemCache();
-            var potentialItems = rules.Where(x => x.Enabled && x.AllowBuy).SelectMany(x => x.search.AllItems ??= x.search.GetPossibleItems()).Distinct().ToList();
-            potentialItems.RemoveAll(x => sellEntries.Any(y => y.Item == x));
+            var potentialItems = rules.Where(x => x.Enabled && x.AllowBuy)
+                .SelectMany(x => (x.search.AllItems ??= x.search.GetPossibleItems()).Select(y => new PotentialItem(y, $"<i>({x.search.name})</i>")))
+                .Distinct()
+                .ToList();
+            potentialItems.RemoveAll(x => sellEntries.Any(y => y.Item == x.Item));
             return potentialItems;
         }
 

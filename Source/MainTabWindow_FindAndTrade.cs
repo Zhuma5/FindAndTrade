@@ -16,7 +16,7 @@ namespace MGAutoSell
 {
     public record ItemsToSell(
         List<SellRecord> Items,
-        List<ThingDef> PotentialItems,
+        List<PotentialItem> PotentialItems,
 
         float TotalSilver,
         string TotalSilverLabel,
@@ -28,6 +28,8 @@ namespace MGAutoSell
     public record TraderRecord(Pawn Pawn, string Name, Func<Texture> Icon, string ImprovementLabel, float Improvement, bool IsLeader);
 
     public record RuleRecord(ThingDef Item, int Count);
+
+    public record PotentialItem(ThingDef Item, string Rule);
 
     public class MainTabWindow_FindAndTrade : MainTabWindow
     {
@@ -297,9 +299,17 @@ namespace MGAutoSell
                         break;
                     case TradeRuleAction.Suspend:
                         tradeRule.Enabled = !tradeRule.Enabled;
+                        sellCache = sellCache with
+                        {
+                            PotentialItems = comp.tradeRules.GetPossibleItemsList(sellCache.Items)
+                        };
                         break;
                     case TradeRuleAction.Mode:
                         tradeRule.Mode = tradeRule.Mode.Next();
+                        sellCache = sellCache with
+                        {
+                            PotentialItems = comp.tradeRules.GetPossibleItemsList(sellCache.Items)
+                        };
                         break;
                     case TradeRuleAction.Refresh:
                         sellCache = sellCache with
@@ -396,7 +406,7 @@ namespace MGAutoSell
 
             if (Mod.Settings.showAllMatchingItems)
             {
-                foreach (var thingDef in sellCache.PotentialItems)
+                foreach (var potentialItem in sellCache.PotentialItems)
                 {
                     index++;
 
@@ -417,14 +427,19 @@ namespace MGAutoSell
 
                     i++;
                     var color = GUI.color;
-                    GUI.color = thingDef.uiIconColor;
-                    GUI.DrawTexture(row.LeftPartPixels(row.height), thingDef.uiIcon);
+                    GUI.color = potentialItem.Item.uiIconColor;
+                    GUI.DrawTexture(row.LeftPartPixels(row.height), potentialItem.Item.uiIcon);
                     GUI.color = _fadedColor;
 
                     row.x += row.height + 10;
-                    Widgets.Label(row, thingDef.GetLabel());
+                    Widgets.Label(row, potentialItem.Item.GetLabel());
                     row.x -= row.height + 10;
+
+                    var size = Text.CalcSize(potentialItem.Rule);
+                    Widgets.Label(row.RightPartPixels(size.x), potentialItem.Rule);
                     GUI.color = color;
+
+                    
                 }
             }
 
