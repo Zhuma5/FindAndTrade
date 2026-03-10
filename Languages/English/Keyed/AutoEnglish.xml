@@ -28,4 +28,6 @@
     <MGAutoSell.InvalidRange>This rule is invalid because you are trying to have at least {0}, and at most {1}.\nImport must be larger than Export.</MGAutoSell.InvalidRange>
     <MGAutoSell.InvalidBuy>This rule is invalid because you are trying to import {0}.</MGAutoSell.InvalidBuy>
     <MGAutoSell.Basically>This Maintain rule is basically an {0} rule, since your {1} amount is not greater than 0.</MGAutoSell.Basically>
+
+    <MGAutoSell.SellHeader>Items</MGAutoSell.SellHeader>
 </LanguageData>

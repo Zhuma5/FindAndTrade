@@ -5,6 +5,7 @@ using TD_Find_Lib;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
+using MGAutoSell.Extensions;
 
 namespace MGAutoSell
 {
@@ -24,7 +25,7 @@ namespace MGAutoSell
         private const int LabelSize = 60;
         private const int BoxSize = 40;
 
-        private const int AnnoyingUnavoidableGap = 4;
+        public const int AnnoyingUnavoidableGap = 4;
 
         private static TaggedString TagInvalid, TagRange, TagBuy, TagBasically, TagExport, TagImport, TagMaintain;
 
@@ -48,6 +49,7 @@ namespace MGAutoSell
 
         public static TradeRuleAction DrawRow(Rect rowRect, TradeRule item, int i, ItemsToSell sellCache, int reorderId)
         {
+            var doMouseEvents = Mouse.IsOver(rowRect);
             suspendTex ??= BakeGrayscale(TexButton.Suspend, Color.white);
             var invalidSell = item.Invalid || !item.AllowSell;
             var invalidBuy = item.Invalid || !item.AllowBuy;
@@ -58,7 +60,7 @@ namespace MGAutoSell
             var OGAnchor = Text.Anchor;
             var OGFieldAlignment = Text.CurTextFieldStyle.alignment;
             Text.CurTextFieldStyle.alignment = TextAnchor.MiddleCenter;
-            if (i % 2 == 1)
+            if (GUI.enabled && i % 2 == 1)
                 Widgets.DrawLightHighlight(rowRect);
             if (ruleDisabled)
                 Widgets.DrawBoxSolid(rowRect, Disabled);
@@ -66,30 +68,46 @@ namespace MGAutoSell
             var left = new WidgetRow(rowRect.x, rowRect.y + 3, UIDirection.RightThenDown);
             var right = new WidgetRow(rowRect.xMax, rowRect.y + 3, UIDirection.LeftThenDown);
 
-            GUI.color = Faded;
-            left.Icon(Textures.Drag);
-            GUI.color = OGColor;
-            Text.Anchor = TextAnchor.MiddleLeft;
-            left.Label(item.search.name);
-            Text.Anchor = OGAnchor;
+            if (GUI.enabled)
+            {
+                GUI.color = Faded;
+                left.Icon(Textures.Drag);
+                GUI.color = OGColor;
+                Text.Anchor = TextAnchor.MiddleLeft;
+                left.LabelFast(item.search.name);
+                Text.Anchor = OGAnchor;
 
-            if (right.ButtonIcon(FindTex.Trash))
-                response = TradeRuleAction.Delete;
+                if (doMouseEvents)
+                {
+                    if (right.ButtonIcon(FindTex.Trash))
+                        response = TradeRuleAction.Delete;
 
-            if (right.ButtonIcon(FindTex.Edit))
-                response = TradeRuleAction.Edit;
+                    if (right.ButtonIcon(FindTex.Edit))
+                        response = TradeRuleAction.Edit;
 
-
-            if (right.ButtonIcon(suspendTex))
-                response = TradeRuleAction.Suspend;
+                    if (right.ButtonIcon(suspendTex))
+                        response = TradeRuleAction.Suspend;
+                }
+                else
+                {
+                    var gap = right.CellGap;
+                    right.CellGap = 0;
+                    right.Icon(FindTex.Trash);
+                    right.Icon(FindTex.Edit);
+                    right.Icon(suspendTex);
+                    right.CellGap = gap;
+                }
+            }
 
             #region Export
             if (item.Mode is TradeMode.Export or TradeMode.Maintain)
             {
-                if (invalidSell) 
+                if (invalidSell)
                     GUI.color = Invalid;
                 var before = item.Export;
-                var tooltip = right.TextFieldNumeric<int>(ref item.Export, ref item.ExportBuffer, BoxSize);
+
+                var tooltip = right.TextFieldInt(ref item.Export, ref item.ExportBuffer, BoxSize);
+
                 if (invalidSell)
                     TooltipHandler.TipRegion(tooltip, () => TagInvalid.Formatted(GetInvalidMessage(item.Import, item.Export, item.Mode)), item.Hash);
                 if (string.IsNullOrWhiteSpace(item.ExportBuffer))
@@ -99,7 +117,7 @@ namespace MGAutoSell
                 }
 
                 var after = item.Export;
-                if(before != after)
+                if (before != after)
                     response = TradeRuleAction.Refresh;
 
                 GUI.color = OGColor;
@@ -109,41 +127,47 @@ namespace MGAutoSell
             #endregion
 
             #region Mode Switcher
-            Text.Anchor = TextAnchor.MiddleCenter;
-            GUI.color = item.Mode switch
+
+            if (GUI.enabled)
             {
-                TradeMode.Export => Green,
-                TradeMode.Import => Blue,
-                TradeMode.Maintain => Yellow,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            var end = right.FinalX;
+                Text.Anchor = TextAnchor.MiddleCenter;
+                GUI.color = item.Mode switch
+                {
+                    TradeMode.Export => Green,
+                    TradeMode.Import => Blue,
+                    TradeMode.Maintain => Yellow,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+                var end = right.FinalX;
 
-            if (item.Mode is TradeMode.Export or TradeMode.Maintain)
-                right.Label("<", ArrowSize);
-            else
-                right.Gap(ArrowSize + AnnoyingUnavoidableGap);
+                if (item.Mode is TradeMode.Export or TradeMode.Maintain)
+                    right.Label("<", ArrowSize);
+                else
+                    right.Gap(ArrowSize + AnnoyingUnavoidableGap);
 
-            string label = null;
-            if (Mod.Settings.showQuanityInsteadOfLabel && sellCache != null)
-                sellCache.Rules.TryGetValue(item, out label);
-            label ??= item.Mode.ToString();
-            right.Label(label, LabelSize);
+                string label = null;
+                if (Mod.Settings.showQuanityInsteadOfLabel && sellCache != null)
+                    sellCache.Rules.TryGetValue(item, out label);
+                label ??= item.Mode.ToString();
+                right.Label(label, LabelSize);
 
-            if (item.Mode is TradeMode.Import or TradeMode.Maintain)
-                right.Label(">", ArrowSize);
-            else
-                right.Gap(ArrowSize + AnnoyingUnavoidableGap);
-            var start = right.FinalX;
-            var rect = new Rect(rowRect.x + start, rowRect.y, end - start, rowRect.height);
-            if (Mouse.IsOver(rect))
-            {
-                Widgets.DrawHighlight(rect);
+                if (item.Mode is TradeMode.Import or TradeMode.Maintain)
+                    right.Label(">", ArrowSize);
+                else
+                    right.Gap(ArrowSize + AnnoyingUnavoidableGap);
+                var start = right.FinalX;
+                var rect = new Rect(rowRect.x + start, rowRect.y, end - start, rowRect.height);
+                if (Mouse.IsOver(rect))
+                {
+                    Widgets.DrawHighlight(rect);
+                }
+
+                if (DoClickWithoutBlocking(rect, item.Hash))
+                    response = TradeRuleAction.Mode;
+
+                GUI.color = OGColor;
             }
-            if (DoClickWithoutBlocking(rect, item.Hash))
-                response = TradeRuleAction.Mode;
 
-            GUI.color = OGColor;
             #endregion
 
             #region Import
@@ -153,9 +177,9 @@ namespace MGAutoSell
                     GUI.color = Invalid;
 
                 var before = item.Import;
+                var tooltip = right.TextFieldInt(ref item.Import, ref item.ImportBuffer, BoxSize);
 
-                var tooltip = right.TextFieldNumeric<int>(ref item.Import, ref item.ImportBuffer, BoxSize);
-                if(invalidBuy)
+                if (invalidBuy)
                     TooltipHandler.TipRegion(tooltip, () => TagInvalid.Formatted(GetInvalidMessage(item.Import, item.Export, item.Mode)), item.Hash);
                 if (string.IsNullOrWhiteSpace(item.ImportBuffer))
                 {
@@ -185,10 +209,10 @@ namespace MGAutoSell
         {
             switch (mode)
             {
-                case TradeMode.Maintain when export == 0:
-                    return TagBasically.Formatted(TagImport, TagExport);
                 case TradeMode.Maintain when import == 0:
                     return TagBasically.Formatted(TagExport, TagImport);
+                case TradeMode.Maintain when export == 0:
+                    return TagBasically.Formatted(TagImport, TagExport);
                 case TradeMode.Maintain when import > export:
                     return TagRange.Formatted(import, export);
 
@@ -199,7 +223,7 @@ namespace MGAutoSell
                     return "*shrugs*";
             }
 
-            
+
         }
 
         static HashSet<int> mouseEvents = [];
@@ -249,23 +273,6 @@ namespace MGAutoSell
             return baked;
         }
 
-        private static bool DrawGreyscaleIconButton(Rect rect, string tooltip = null, bool doMouseoverSound = true)
-        {
-            if (doMouseoverSound)
-                MouseoverSounds.DoRegion(rect);
-            var mouseOver = Mouse.IsOver(rect);
-
-            grayTexOver ??= BakeGrayscale(TexButton.Suspend, GenUI.MouseoverColor);
-
-            GUI.DrawTexture(rect, mouseOver ? grayTexOver : suspendTex);
-
-            var clicked = DoClickWithoutBlocking(rect, instanceID);
-
-            if (tooltip.NullOrEmpty())
-                return clicked;
-            TooltipHandler.TipRegion(rect, (TipSignal)tooltip);
-            return clicked;
-        }
     }
 
     public enum TradeRuleAction

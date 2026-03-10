@@ -35,6 +35,7 @@ namespace MGAutoSell
     {
         public ItemsToSell sellCache;
         private List<TraderRecord> tradersCache;
+        private Dictionary<string, Vector2> labelSizeCache = new();
 
         private TradeRulesGameComp comp;
         private TradeRuleEditor editor;
@@ -51,6 +52,7 @@ namespace MGAutoSell
 
         private string title = $"<i>{"MGAutoSell.Title".Translate()}</i>";
         private string tradeAutomaticallyLabel = "MGAutoSell.AutoSellToggle".Translate();
+        private string sellHeader = "MGAutoSell.SellHeader".Translate();
 
 #if DEBUG
         List<long> ticks = new List<long>();
@@ -280,12 +282,16 @@ namespace MGAutoSell
                     new Rect(0.0f, -30, drawerListing.ColumnWidth, height + 30), -1f,
                     (index, _) =>
                         DrawMouseAttachedQuerySearch(comp.tradeRules[index].Search, drawerListing.ColumnWidth));
-
+            var minRenderIndex = Math.Floor(listerScroll.y / 30);
+            var maxRenderIndex = Math.Ceiling(panel.height / 30) + minRenderIndex;
             for (var index = 0; index < comp.tradeRules.Count; index++)
             {
                 var tradeRule = comp.tradeRules[index];
+                if (index < minRenderIndex || index > maxRenderIndex)
+                    GUI.enabled = false;
                 var action = TradeRuleDrawUtility.DrawRow(drawerListing.GetRect(30), tradeRule, index, sellCache,
                     reorderID);
+                GUI.enabled = true;
                 switch (action)
                 {
                     case TradeRuleAction.None:
@@ -320,6 +326,7 @@ namespace MGAutoSell
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+
             }
 
             drawerListing.EndScrollView(ref height);
@@ -341,13 +348,13 @@ namespace MGAutoSell
             toSellRect.SplitHorizontally(Text.LineHeight, out var itemHeader, out toSellRect);
 
             Widgets.DrawLightHighlight(itemHeader);
-            Widgets.Label(itemHeader.RightPartPixels(itemHeader.width - Text.LineHeight - 10), "Items to Sell");
+            Widgets.Label(itemHeader.RightPartPixels(itemHeader.width - Text.LineHeight - 10), sellHeader);
             GUI.DrawTexture(itemHeader.RightPartPixels(24f), ThingDefOf.Silver.uiIcon);
 
             toSellRect.SplitHorizontally(4, out var gapHeader, out toSellRect);
             Widgets.DrawLineHorizontal(gapHeader.x, gapHeader.y, gapHeader.width, _fadedColor);
 
-            int i = 0;
+            int i = -1;
             var anchor = Text.Anchor;
             var totalItems = sellCache.Items.Count + (Mod.Settings.showAllMatchingItems ? sellCache.PotentialItems.Count : 0);
             var viewRect = toSellRect.TopPartPixels(toSellRect.height - Text.LineHeight);
@@ -363,14 +370,12 @@ namespace MGAutoSell
 
             var minRenderIndex = shouldScroll ? Math.Floor(sellScroll.y / Text.LineHeight) : 0;
             var maxRenderIndex = shouldScroll ? Math.Ceiling(viewRect.height / Text.LineHeight) + minRenderIndex : 0;
-            int index = -1;
             foreach (var (thingDef, count, total, pricePerLabel, totalLabel) in sellCache.Items)
             {
-                index++;
-
+                i++;
                 if (shouldScroll)
                 {
-                    if(index < minRenderIndex || index > maxRenderIndex)
+                    if(i < minRenderIndex || i > maxRenderIndex)
                     {
                         listing.Gap(Text.LineHeight);
                         continue;
@@ -382,7 +387,6 @@ namespace MGAutoSell
 
                 if (i % 2 == 1)
                     Widgets.DrawLightHighlight(row);
-                i++;
                 var color = GUI.color;
                 GUI.color = thingDef.uiIconColor;
                 GUI.DrawTexture(row.LeftPartPixels(row.height), thingDef.uiIcon);
@@ -408,11 +412,10 @@ namespace MGAutoSell
             {
                 foreach (var potentialItem in sellCache.PotentialItems)
                 {
-                    index++;
-
+                    i++;
                     if (shouldScroll)
                     {
-                        if (index < minRenderIndex || index > maxRenderIndex)
+                        if (i < minRenderIndex || i > maxRenderIndex)
                         {
                             listing.Gap(Text.LineHeight);
                             continue;
@@ -425,7 +428,6 @@ namespace MGAutoSell
                     if (i % 2 == 1)
                         Widgets.DrawLightHighlight(row);
 
-                    i++;
                     var color = GUI.color;
                     GUI.color = potentialItem.Item.uiIconColor;
                     GUI.DrawTexture(row.LeftPartPixels(row.height), potentialItem.Item.uiIcon);
@@ -435,7 +437,12 @@ namespace MGAutoSell
                     Widgets.Label(row, potentialItem.Item.GetLabel());
                     row.x -= row.height + 10;
 
-                    var size = Text.CalcSize(potentialItem.Rule);
+                    if (!labelSizeCache.TryGetValue(potentialItem.Rule, out var size))
+                    {
+                        size = Text.CalcSize(potentialItem.Rule);
+                        labelSizeCache[potentialItem.Rule] = size;
+                    }
+
                     Widgets.Label(row.RightPartPixels(size.x), potentialItem.Rule);
                     GUI.color = color;
 
@@ -485,9 +492,9 @@ namespace MGAutoSell
             }
 
             var footerRow = new WidgetRow(footer.xMax - 4, footer.y, UIDirection.LeftThenDown);
-            footerRow.Label(sellCache.TotalSilverLabel);
+            footerRow.LabelFast(sellCache.TotalSilverLabel);
             footerRow.Icon(ThingDefOf.Silver.uiIcon);
-            footerRow.Label("Total:");
+            footerRow.LabelFast("Total:");
         }
 
         public List<TraderRecord> GetTraders(bool generatePictures = true)
