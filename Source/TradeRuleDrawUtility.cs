@@ -77,26 +77,14 @@ namespace MGAutoSell
                 left.LabelFast(item.search.name);
                 Text.Anchor = OGAnchor;
 
-                if (doMouseEvents)
-                {
-                    if (right.ButtonIcon(FindTex.Trash))
-                        response = TradeRuleAction.Delete;
+                if (right.ButtonIcon(FindTex.Trash))
+                    response = TradeRuleAction.Delete;
 
-                    if (right.ButtonIcon(FindTex.Edit))
-                        response = TradeRuleAction.Edit;
+                if (right.ButtonIcon(FindTex.Edit))
+                    response = TradeRuleAction.Edit;
 
-                    if (right.ButtonIcon(suspendTex))
-                        response = TradeRuleAction.Suspend;
-                }
-                else
-                {
-                    var gap = right.CellGap;
-                    right.CellGap = 0;
-                    right.Icon(FindTex.Trash);
-                    right.Icon(FindTex.Edit);
-                    right.Icon(suspendTex);
-                    right.CellGap = gap;
-                }
+                if (right.ButtonIcon(suspendTex))
+                    response = TradeRuleAction.Suspend;
             }
 
             #region Export
