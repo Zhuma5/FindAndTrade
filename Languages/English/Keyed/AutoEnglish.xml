@@ -30,4 +30,13 @@
     <MGAutoSell.Basically>This Maintain rule is basically an {0} rule, since your {1} amount is not greater than 0.</MGAutoSell.Basically>
 
     <MGAutoSell.SellHeader>Items</MGAutoSell.SellHeader>
+
+    <MGAutoSell.Settings.Benchmark>Benchmark</MGAutoSell.Settings.Benchmark>
+    <MGAutoSell.Settings.BenchmarkDisabled>Load a save/map to enable benchmarking.</MGAutoSell.Settings.BenchmarkDisabled>
+
+    <MGAutoSell.Settings.scanEveryStackLabel>Scan Every Stack</MGAutoSell.Settings.scanEveryStackLabel>
+    <MGAutoSell.Settings.scanEveryStackTooltip>When enabled, the system will scan every stack of items instead of just the first per ThingDef.</MGAutoSell.Settings.scanEveryStackTooltip>
+
+    <MGAutoSell.Settings.showAllMatchingItemsLabel>Show All Matching Items</MGAutoSell.Settings.showAllMatchingItemsLabel>
+    <MGAutoSell.Settings.showAllMatchingItemsTooltip>When enabled, the system will display all items that match the trade rules, not just selling.</MGAutoSell.Settings.showAllMatchingItemsTooltip>
 </LanguageData>

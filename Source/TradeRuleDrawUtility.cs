@@ -146,7 +146,7 @@ namespace MGAutoSell
                     right.Gap(ArrowSize + AnnoyingUnavoidableGap);
 
                 string label = null;
-                if (Mod.Settings.showQuanityInsteadOfLabel && sellCache != null)
+                if (Mod.Settings.showQuantityInsteadOfLabel && sellCache != null)
                     sellCache.Rules.TryGetValue(item, out label);
                 label ??= item.Mode.ToString();
                 right.Label(label, LabelSize);

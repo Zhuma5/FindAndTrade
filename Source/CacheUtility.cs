@@ -100,7 +100,7 @@ namespace MGAutoSell
         public static Dictionary<TradeRule, string> GetRuleCounts(
             this Dictionary<TradeRule, List<Thing>> ruleDictionary)
         {
-            if (!Mod.Settings.showQuanityInsteadOfLabel)
+            if (!Mod.Settings.showQuantityInsteadOfLabel)
                 return [];
 
             return ruleDictionary.ToDictionary(x => x.Key,

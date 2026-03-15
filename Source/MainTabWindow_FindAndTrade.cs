@@ -144,7 +144,8 @@ namespace MGAutoSell
             Widgets.DrawLineVertical(leftPanel.width + 6, 0, 300f);
             GUI.color = color;
 
-            DrawSellPanel(rightPanel);
+            TabUtility.DrawSellPanel(rightPanel, sellCache, ref sellScroll, currentTab, SellerOverride,
+                () => nextCache = 0);
 
             Text.Font = font;
 #if DEBUG

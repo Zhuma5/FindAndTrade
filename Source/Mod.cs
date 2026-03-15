@@ -16,13 +16,14 @@ namespace MGAutoSell
         public Mod(ModContentPack content) : base(content)
         {
             Settings = GetSettings<Settings>();
+            LongEventHandler.ExecuteWhenFinished(() => Settings.Init());
             var harmony = new Harmony(content.PackageId);
             harmony.PatchAll();
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            base.DoSettingsWindowContents(inRect);
+            Settings.DoSettingsWindow(inRect);
         }
 
         public override string SettingsCategory() => "MGAutoSell.Title".Translate();
