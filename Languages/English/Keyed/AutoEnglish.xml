@@ -5,12 +5,12 @@
     <MGAutoSell.Earned>earned</MGAutoSell.Earned>
     <MGAutoSell.Spent>spent</MGAutoSell.Spent>
 
-    <MGAutoSell.Bought>\n\nItems Bought</MGAutoSell.Bought>
-    <MGAutoSell.Sold>\n\nItems Sold</MGAutoSell.Sold>
+    <MGAutoSell.Bought>\n\nItems Bought:</MGAutoSell.Bought>
+    <MGAutoSell.Sold>\n\nItems Sold:</MGAutoSell.Sold>
 
     <MGAutoSell.LetterTitle>Traded with {0}</MGAutoSell.LetterTitle>
     <!-- Pawn, Trader Ship/Faction, Silver, earned/spent, Buy, Sell -->
-    <MGAutoSell.Letter>{0} traded with {1}\n{2} Silver was {3}.{4}{5}</MGAutoSell.Letter>
+    <MGAutoSell.Letter>{0} traded with {1}.\n{2} was {3}.{4}{5}</MGAutoSell.Letter>
 
     <MGAutoSell.RuleInvalid>This rule is invalid because the minimum exceeds the maximum.</MGAutoSell.RuleInvalid>
 
@@ -37,6 +37,9 @@
 
     <MGAutoSell.Settings.scanEveryStackLabel>Scan Every Stack</MGAutoSell.Settings.scanEveryStackLabel>
     <MGAutoSell.Settings.scanEveryStackTooltip>Scan every stack of items on the map instead of just the first Thing per trade row.</MGAutoSell.Settings.scanEveryStackTooltip>
+
+    <MGAutoSell.Settings.rememberManualTradeLabel>Mark trader when manually trading</MGAutoSell.Settings.rememberManualTradeLabel>
+    <MGAutoSell.Settings.rememberManualTradeTooltip>When manually trading, mark them so that they won't be automatically traded with again later.</MGAutoSell.Settings.rememberManualTradeTooltip>
 
     <MGAutoSell.Settings.showAllMatchingItemsLabel>Show All Matching ThingDefs</MGAutoSell.Settings.showAllMatchingItemsLabel>
     <MGAutoSell.Settings.showAllMatchingItemsTooltip>Display all items that match the trade rules, not just selling.\n\nA rule's list is regenerated when the rule changes.</MGAutoSell.Settings.showAllMatchingItemsTooltip>

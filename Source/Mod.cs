@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using MGAutoSell.Query;
 using UnityEngine;
 using Verse;
 
@@ -18,6 +19,8 @@ namespace MGAutoSell
         {
             Settings = GetSettings<Settings>();
             Instance = this;
+            ParseHelper.Parsers<PriceTypeRange>.Register(PriceTypeRange.FromString);
+
             LongEventHandler.ExecuteWhenFinished(() => Settings.Init());
             var harmony = new Harmony(content.PackageId);
             harmony.PatchAll();

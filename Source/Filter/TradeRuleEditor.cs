@@ -17,6 +17,25 @@ namespace MGAutoSell.Filter
             _tradeRule = tradeRule;
         }
 
+        public override void DoWindowContents(Rect fillRect)
+        {
+            if (!this.locked && Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.V && Event.current.control)
+            {
+                ClipboardTransfer clipboardTransfer = new ClipboardTransfer();
+                if (clipboardTransfer.ProvideMethod() == ISearchProvider.Method.Single)
+                {
+                    this.Import(clipboardTransfer.ProvideSingle().Clone(this.ImportArgs));
+                    Event.current.Use();
+                }
+            }
+            Draw(fillRect);
+            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.C && Event.current.control)
+            {
+                new ClipboardTransfer().Receive(this.filter);
+                Event.current.Use();
+            }
+        }
+
         protected override void DrawHeader(Rect headerRect)
         {
             var search = filter as QuerySearch;

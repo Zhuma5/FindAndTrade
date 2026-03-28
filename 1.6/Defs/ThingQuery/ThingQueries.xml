@@ -1,0 +1,39 @@
+<Defs>
+
+    <!-- <TD_Find_Lib.ThingQueryDef>
+        <defName>MGAutoSell_Query_TradePriceAmount</defName>
+        <label>trade price amount</label>
+        <queryClass>MGAutoSell.Query.TradeQueryPriceAmount</queryClass>
+    </TD_Find_Lib.ThingQueryDef> -->
+
+    <TD_Find_Lib.ThingQueryDef>
+        <defName>MGAutoSell_Query_TradePrice</defName>
+        <label>trade price category</label>
+        <queryClass>MGAutoSell.Query.TradeQueryPrice</queryClass>
+    </TD_Find_Lib.ThingQueryDef>
+
+
+    <TD_Find_Lib.ThingQueryDef>
+        <defName>MGAutoSell_Query_TraderKind</defName>
+        <label>trader kind</label>
+        <queryClass>MGAutoSell.Query.TradeQueryTraderType</queryClass>
+    </TD_Find_Lib.ThingQueryDef>
+
+    <TD_Find_Lib.ThingQueryDef>
+        <defName>MGAutoSell_Query_TraderOrbital</defName>
+        <label>Is orbital trader</label>
+        <queryClass>MGAutoSell.Query.TradeQueryTraderOrbital</queryClass>
+    </TD_Find_Lib.ThingQueryDef>
+
+
+    <TD_Find_Lib.ThingQueryCategoryDef>
+        <defName>MGAutoSell_ThingQueryCategory</defName>
+        <label>Trade</label>
+        <subQueries>
+            <!-- <li>MGAutoSell_Query_TradePriceAmount</li> -->
+            <li>MGAutoSell_Query_TradePrice</li>
+            <li>MGAutoSell_Query_TraderKind</li>
+            <li>MGAutoSell_Query_TraderOrbital</li>
+        </subQueries>
+    </TD_Find_Lib.ThingQueryCategoryDef>
+</Defs>

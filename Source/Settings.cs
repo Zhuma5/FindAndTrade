@@ -16,6 +16,7 @@ namespace MGAutoSell
         public Dictionary<string, Vector2> LabelSizeCache = [];
         
         public bool scanEveryStack = true;
+        public bool rememberManualTrade = true;
 
         public bool showAllMatchingItems = true;
 
@@ -32,6 +33,8 @@ namespace MGAutoSell
         private static string _benchmarkLabelDisabledNoDev;
         private static string _scanEveryStackLabel;
         private static string _scanEveryStackTooltip;
+        private static string _rememberManualTradeLabel;
+        private static string _rememberManualTradeTooltip;
         private static string _showAllMatchingItemsLabel;
         private static string _showAllMatchingItemsTooltip;
         private static string _showQuantityInsteadOfLabelLabel;
@@ -57,6 +60,8 @@ namespace MGAutoSell
             _benchmarkLabelDisabledNoDev = "MGAutoSell.Settings.BenchmarkDisabledNoDev".Translate();
             _scanEveryStackLabel = "MGAutoSell.Settings.scanEveryStackLabel".Translate();
             _scanEveryStackTooltip = "MGAutoSell.Settings.scanEveryStackTooltip".Translate();
+            _rememberManualTradeLabel = "MGAutoSell.Settings.rememberManualTradeLabel".Translate();
+            _rememberManualTradeTooltip = "MGAutoSell.Settings.rememberManualTradeTooltip".Translate();
             _showAllMatchingItemsLabel = "MGAutoSell.Settings.showAllMatchingItemsLabel".Translate();
             _showAllMatchingItemsTooltip = "MGAutoSell.Settings.showAllMatchingItemsTooltip".Translate();
             _showQuantityInsteadOfLabelLabel = "MGAutoSell.Settings.showQuantityInsteadOfLabelLabel".Translate();
@@ -66,6 +71,8 @@ namespace MGAutoSell
             _showMinMaxLabelWhereApplicableLabel = "MGAutoSell.Settings.showMinMaxLabelWhereApplicableLabel".Translate();
             _showMinMaxLabelWhereApplicableTooltip = "MGAutoSell.Settings.showMinMaxLabelWhereApplicableTooltip".Translate();
 
+
+            var test = Enum.GetValues(typeof(PriceType)).OfType<PriceType>().ToList();
             var search = new QuerySearch();
             search.name = "Drugs";
             var drugsQuery = ThingQueryMaker.MakeQuery<ThingQueryThingDefCategory>();
@@ -150,6 +157,7 @@ namespace MGAutoSell
             Scribe_Values.Look(ref showAllMatchingItems, "showAllMatchingItems", true);
             Scribe_Values.Look(ref showQuantityInsteadOfLabel, "showQuantityInsteadOfLabel", true);
             Scribe_Values.Look(ref colorRuleCountsOnWork, "colorRuleCountsOnWork", true);
+            Scribe_Values.Look(ref rememberManualTrade, "rememberManualTrade", true);
 
 #if DEBUG
             Scribe_Values.Look(ref MenuToOpen, "MenuToOpen");
@@ -168,6 +176,7 @@ namespace MGAutoSell
             listing.Begin(top);
 
             listing.CheckboxLabeled(_scanEveryStackLabel, ref scanEveryStack, _scanEveryStackTooltip);
+            listing.CheckboxLabeled(_rememberManualTradeLabel, ref rememberManualTrade, _rememberManualTradeTooltip);
 #if DEBUG
             if (listing.ButtonTextLabeled("DEBUG: Open window on launch", MenuToOpen.ToString(), TextAnchor.MiddleLeft))
             {

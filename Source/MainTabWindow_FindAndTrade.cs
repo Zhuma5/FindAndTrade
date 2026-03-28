@@ -179,8 +179,9 @@ namespace MGAutoSell
 
         private void DrawEditTab(Rect panel)
         {
-            var buttonRect = panel.BottomPartPixels(30f).LeftPartPixels(30f);
-            editor!.DoWindowContents(panel);
+            panel.SplitHorizontally(panel.height - 30f, out var top, out var bottom);
+            var buttonRect = bottom.LeftPartPixels(30f);
+            editor!.DoWindowContents(top);
             if (!Widgets.ButtonImage(buttonRect, TexButton.Banish)) 
                 return;
 

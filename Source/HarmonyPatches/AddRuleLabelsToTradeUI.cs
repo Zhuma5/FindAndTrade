@@ -2,7 +2,7 @@
 using HarmonyLib;
 using RimWorld;
 
-namespace MGAutoSell
+namespace MGAutoSell.HarmonyPatches
 {
     [HarmonyPatch]
     public static class AddRuleLabelsToTradeUI

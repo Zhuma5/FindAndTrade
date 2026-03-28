@@ -8,6 +8,8 @@ using HarmonyLib;
 using LudeonTK;
 using MGAutoSell.Extensions;
 using MGAutoSell.Filter;
+using MGAutoSell.HarmonyPatches;
+using MGAutoSell.Query;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -140,9 +142,16 @@ namespace MGAutoSell
         public static void DoTradeShips(Pawn socialPawn)
         {
             var comp = Current.Game.GetComponent<TradeRulesGameComp>();
-            var ships = socialPawn.Map.passingShipManager.passingShips;
+            var ships = socialPawn.Map.passingShipManager.passingShips.ToList();
 
-            ships.RemoveAll(x => comp.traders.Contains(x as ITrader));
+            ships.RemoveAll(x =>
+            {
+                if (x is not ITrader trader)
+                    return true;
+
+                return comp.traders.Contains(trader) ||
+                       !socialPawn.CanTradeWith(trader.Faction, trader.TraderKind);
+            });
 
             if(!ships.Any()) 
                 return;
@@ -205,7 +214,7 @@ namespace MGAutoSell
 
             var sellDictionary = new Dictionary<Tradeable, int>();
             var buyDictionary = new Dictionary<Tradeable, int>();
-            var itemCache = tradeables.Where(x => x.TraderWillTrade).ToList();
+            var itemCache = tradeables.Where(x => x.TraderWillTrade && x.ThingDef != null).ToList();
 
             if (!GroupedTrading)
             {
@@ -213,6 +222,9 @@ namespace MGAutoSell
                 TradeRuleAggregations.Clear();
                 ExtrasOnMap.Clear();
             }
+
+            if(!itemCache.Any())
+                return;
 
             var itemsToAdd = itemCache.GroupBy(x => x.ThingDef).ToDictionary(x => x.Key,
                 x => x.ToList().Sum(x => x.CountHeldBy(Transactor.Colony)));
@@ -312,13 +324,22 @@ namespace MGAutoSell
                 }
                 else
                     items = itemCache
-                    .Where(x => !x.IsCurrency && x.AnyThingNotJunk(out var thing) && rule.search.AppliesTo(thing))
+                    .Where(x => 
+                        !x.IsCurrency && 
+                        x.AnyThingNotJunk(out var thing) && 
+                        rule.search.AppliesTo(thing)
+                        )
                     .Select(x => new TradeEntry(x, x.ThingDef, x.CountHeldBy(Transactor.Colony), x.CountHeldBy(Transactor.Trader)))
                     .ToList();
 
 
                 var toSell = rule.AllowSell
-                    ? items.Where(x => GetCount(rule, x.ThingDef) > rule.Export).ToList()
+                    ? items
+                        .Where(x => 
+                            GetCount(rule, x.ThingDef) > rule.Export &&
+                           (!rule.search.TradeQueries.Any() ||
+                            rule.search.AppliesTo(new TradeContext(deal, x.Tradeable, TradeAction.PlayerSells))))
+                        .ToList()
                     : [];
                 toSell.ForEach(x =>
                 {
@@ -352,13 +373,12 @@ namespace MGAutoSell
                     AddCount(rule, matchedItem.Key, totalStock);
                 }
 
-                ;
-
                 var toBuy =
                     rule.AllowBuy
                         ? items
                             .Where(x =>
-                                GetCount(rule, x.ThingDef) < rule.Import)
+                                GetCount(rule, x.ThingDef) < rule.Import &&
+                          (!rule.search.TradeQueries.Any() || rule.search.AppliesTo(new TradeContext(deal, x.Tradeable, TradeAction.PlayerBuys))))
                             .ToList()
                         : [];
                 toBuy.ForEach(x => itemCache.Remove(x.Tradeable));
@@ -493,20 +513,35 @@ namespace MGAutoSell
                 return;
 
             var word = silver > 0 ? earned : spent;
-            var actualSilver = Math.Abs(silver);
+            float absSilver = Math.Abs(silver);
+            
 
             var buyStringBuilder = new StringBuilder();
-            buyStringBuilder.AppendLine(bought);
-            buyStringBuilder.AppendJoin("\n", buy.Select(x => $"{x.label} x{Math.Abs(x.count)}"));
+            buyStringBuilder.AppendLine(bought.Colorize(ColoredText.TipSectionTitleColor));
+            buyStringBuilder.AppendJoin("\n", buy.Select(x => $"  {x.label} x{Math.Abs(x.count)}"));
 
             var sellStringBuilder = new StringBuilder();
-            sellStringBuilder.AppendLine(sold);
-            sellStringBuilder.AppendJoin("\n", sell.Select(x => $"{x.label} x{Math.Abs(x.count)}"));
+            sellStringBuilder.AppendLine(sold.Colorize(ColoredText.TipSectionTitleColor));
+            sellStringBuilder.AppendJoin("\n", sell.Select(x => $"  {x.label} x{Math.Abs(x.count)}"));
 
-            var traderName = trader?.TraderName ?? "someone";
+            var pawnName = pawn.Name.ToStringShort.Colorize(ColoredText.NameColor);
+            var traderColor = (trader.Faction?.PlayerRelationKind ?? FactionRelationKind.Neutral).GetColor();
+            var traderName = trader?.TraderName?.Colorize(traderColor) ?? "someone".Colorize(Color.magenta);
+            var silverLabel = absSilver.ToStringMoney().Colorize(ColoredText.CurrencyColor);
+            var buySection = buy.Any()
+                ? buyStringBuilder.ToString()
+                : string.Empty;
+            var sellSection = sell.Any() ? sellStringBuilder.ToString() : string.Empty;
 
-            var body = "MGAutoSell.Letter".Translate(pawn.Name.ToStringShort, traderName, actualSilver,
-                word, buy.Any() ? buyStringBuilder.ToString() : string.Empty, sell.Any() ? sellStringBuilder.ToString() : string.Empty);
+
+            var body = "MGAutoSell.Letter".Translate(
+                pawnName,
+                traderName, 
+                silverLabel,
+                word, 
+                buySection, 
+                sellSection
+                );
 
             var globalTargetInfo = new GlobalTargetInfo(location, pawn.Map);
             
