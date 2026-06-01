@@ -80,20 +80,23 @@ namespace MGAutoSell
             if (map == null)
                 return;
 
+
             try
             {
                 SellerOverride.TryGetValue(map, out var seller);
                 var cache = CacheUtility.Cache(this, map, out _, seller);
                 SellCache[map] = cache;
 
-                var comp = Find.World.GetComponent<SettlementTracker>();
-                var shuttle = comp.GetBestForMap(map);
-
-                var tradeRoute = GetTradeRoute(shuttle, cache, comp);
-                if(tradeRoute != null)
+                if (ModsConfig.OdysseyActive && Settings.FF_Shuttles)
                 {
-                    Log.Warning($"{tradeRoute.Settlement.LabelShortCap} will buy {tradeRoute.Silver} worth");
-                    NextTradeRoute[map] = tradeRoute;
+                    var comp = Find.World.GetComponent<SettlementTracker>();
+                    var shuttle = comp.GetBestForMap(map);
+
+                    var tradeRoute = GetTradeRoute(shuttle, cache, comp);
+                    if (tradeRoute != null)
+                    {
+                        NextTradeRoute[map] = tradeRoute;
+                    }
                 }
             }
             finally
