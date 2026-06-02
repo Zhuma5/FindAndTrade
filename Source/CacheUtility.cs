@@ -9,6 +9,7 @@ using TD_Find_Lib;
 using Verse;
 using System.Diagnostics;
 using System.Threading;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace MGAutoSell
@@ -191,7 +192,37 @@ namespace MGAutoSell
 
             return DefDatabase<ThingDef>.AllDefsListForReading
                 .Where(x => traders.Any(trader => trader.WillTrade(x)) && x.uiIcon != null)
-                .Select(y => y.race != null ? PawnGenerator.GeneratePawn(y.race.AnyPawnKind) : ThingMaker.MakeThing(y, y.MadeFromStuff ? GenStuff.DefaultStuffFor(y) : null)).ToList();
+                .Select(y => y.race != null ? TryGenPawn(y) : TryGenThing(y))
+                .Where(x => x != null)
+                .ToList();
+        }
+
+        [CanBeNull]
+        private static Pawn TryGenPawn(ThingDef thing)
+        {
+            try
+            {
+                return PawnGenerator.GeneratePawn(thing.race.AnyPawnKind);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to PawnGen '{thing.defName}' def\n{ex.Message}\n{ex.StackTrace}");
+                return null;
+            }
+        }
+
+        [CanBeNull]
+        private static Thing TryGenThing(ThingDef thing)
+        {
+            try
+            {
+                return ThingMaker.MakeThing(thing, thing.MadeFromStuff ? GenStuff.DefaultStuffFor(thing) : null);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to ThingGen '{thing.defName}' def\n{ex.Message}\n{ex.StackTrace}");
+                return null;
+            }
         }
 
         public static ItemsToSell Cache(TradeRulesGameComp comp, Map map, out BenchmarkResults benchmark, Pawn SellerOverride = null, bool withBenchmark = false)
