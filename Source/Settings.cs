@@ -51,7 +51,7 @@ namespace MGAutoSell
         private static ItemsToSell _exampleTradeRulesCache;
         private static List<TradeRule> _exampleTradeRules = [];
         private static Vector2 sellScroll = Vector2.zero;
-        private static float firstListingHeight;
+        private static float? firstListingHeight;
         private static float maxHeightOfSides;
 
         public void Init()
@@ -94,12 +94,6 @@ namespace MGAutoSell
 
             _showAllMatchItemsEnabled = new ItemsToSell(drugsActual, drugsPossible, drugsActual[0].Total, null, null);
             _showAllMatchItemsDisabled = new ItemsToSell(drugsActual, [], drugsActual[0].Total, null, null);
-
-            firstListingHeight = 0;
-            firstListingHeight += Text.CalcSize(_scanEveryStackLabel).y;
-#if DEBUG
-            firstListingHeight += 30;
-#endif
 
             var itemRules = new Dictionary<TradeRule, (ItemAndLabel<int>, ItemAndLabel<int>)>();
             var steelTradeRule = new TradeRule("Steel")
@@ -171,7 +165,7 @@ namespace MGAutoSell
             var color = GUI.color;
             var benchmarkTray = Rect.zero;
 
-            rect.SplitHorizontallyWithMargin(out var top, out var bottom, out _, topHeight: firstListingHeight, compressibleMargin: 20);
+            rect.SplitHorizontallyWithMargin(out var top, out var bottom, out _, topHeight: firstListingHeight ?? 100, compressibleMargin: 20);
             bottom.SplitVerticallyWithMargin(out var left, out var right, 16f);
             var listing = new Listing_Standard();
             listing.Begin(top);
@@ -189,6 +183,7 @@ namespace MGAutoSell
                 ]));
             }
 #endif
+            firstListingHeight = listing.CurHeight;
             listing.End();
             // Sell list
             listing.Begin(right);
