@@ -15,7 +15,7 @@ namespace MGAutoSell.AI
         public override bool ShouldSkip(Pawn pawn, bool forced = false)
         {
             var comp = Current.Game.GetComponent<TradeRulesGameComp>();
-            return !comp.autoTrade || !comp.tradeRules.Any() || !comp.autoTraderIDs.Contains(pawn.thingIDNumber);
+            return !comp.tradeRules.Any() || (!forced && (!comp.autoTrade || !comp.autoTraderIDs.Contains(pawn.thingIDNumber)));
         }
 
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false) => 
